@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>智慧垃圾清理系統 - 第三組互動原型</title>
+  <title>智慧垃圾清理系統 - 第三組互動原型 v10.0</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
@@ -121,12 +121,91 @@
       margin-bottom: 8px;
     }
 
+    /* 縣市切換標籤列 */
+    .city-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .city-tab {
+      padding: 9px 6px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .city-tab.active {
+      background: var(--primary-dark);
+      color: #fff;
+      border-color: var(--primary-dark);
+      box-shadow: 0 3px 10px rgba(15, 118, 110, 0.25);
+    }
+
+    /* 大概位置智慧搜尋系統區塊 */
+    .area-search-card {
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      border: 1.5px solid #99f6e4;
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .area-search-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--primary); }
+    .btn-search {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .quick-area-tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .area-tag {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .area-tag:hover { background: var(--primary-light); color: var(--primary-dark); }
+
     .weather-strip {
       background: linear-gradient(135deg, #0284c7, #0369a1);
       color: #fff;
       border-radius: 14px;
       padding: 11px 14px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -136,7 +215,21 @@
     .weather-temp { font-size: 24px; font-weight: 900; line-height: 1; }
     .weather-meta { font-size: 11px; opacity: 0.94; text-align: right; line-height: 1.45; }
 
-    /* 快速搜尋與篩選列 */
+    .traffic-strip {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 9px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+    }
+    .traffic-dots { display: flex; gap: 8px; align-items: center; font-weight: 700; }
+
     .filter-row {
       display: flex;
       gap: 6px;
@@ -160,17 +253,6 @@
       color: #fff;
       border-color: var(--primary);
     }
-    .search-input {
-      width: 100%;
-      padding: 9px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      font-size: 13px;
-      margin-bottom: 10px;
-      background: #fff;
-      outline: none;
-    }
-    .search-input:focus { border-color: var(--primary); }
 
     .badge {
       display: inline-flex;
@@ -183,10 +265,12 @@
       white-space: nowrap;
     }
     .badge-ok { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-scheduled { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
     .badge-collect { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
     .badge-redlight { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-jam { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+    .badge-heavy-jam { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
     .badge-soon { background: #ffedd5; color: #c2410c; animation: pulse 1.2s infinite; }
-    .badge-passed { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .badge-danger { background: var(--danger-light); color: var(--danger); animation: pulse 1s infinite; }
     .badge-dispatch { background: #dbeafe; color: #1d4ed8; }
 
@@ -195,22 +279,19 @@
       50% { transform: scale(1.04); }
     }
 
-    .loc-bar {
+    .schedule-pill-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
+      margin-top: 4px;
     }
-    .btn-sm {
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      border: none;
-      padding: 7px 11px;
-      border-radius: 9px;
-      font-size: 12px;
+    .sched-tag {
+      background: #f1f5f9;
+      color: #334155;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
       font-weight: 700;
-      cursor: pointer;
     }
 
     .bus-card { transition: border-color 0.15s ease; }
@@ -222,20 +303,21 @@
       border-radius: 8px;
       margin-top: 8px;
     }
+    .next-stop-box.scheduled { background: #eef2ff; border-left-color: #4f46e5; }
     .next-stop-box.soon { background: #fff7ed; border-left-color: #ea580c; }
     .next-stop-box.collecting { background: #f0fdf4; border-left-color: #16a34a; }
+    .next-stop-box.jammed { background: #fffbeb; border-left-color: #d97706; }
     .next-stop-title { font-size: 14px; font-weight: 800; color: var(--text); }
     .next-stop-meta { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
     .passed-note {
       font-size: 11px;
       color: #475569;
-      margin-top: 4px;
+      margin-top: 5px;
       display: flex;
       align-items: center;
       gap: 4px;
     }
 
-    /* 載量迷你進度條 */
     .load-bar-bg {
       width: 100%;
       height: 7px;
@@ -250,7 +332,6 @@
       transition: width 0.3s ease;
     }
 
-    /* 卡片底部一鍵直達雙按鈕 */
     .card-quick-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -438,7 +519,7 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">🚛 智慧垃圾清理系統</div>
-      <div class="topbar-sub">v8.0 直覺版｜一鍵地圖追蹤・智慧篩選・真實路網</div>
+      <div class="topbar-sub">v10.0｜跨縣市班次・錯峰發車時程・區域位置搜尋</div>
     </div>
     <div class="topbar-actions">
       <button class="btn-top" id="btnLayout" onclick="toggleLayout()">寬版檢視</button>
@@ -447,49 +528,69 @@
   </div>
 
   <div class="demo-drawer" id="demoDrawer">
-    <div class="demo-group-lbl">⏱️ 行車模擬節奏</div>
+    <div class="demo-group-lbl">⏱️ 行車模擬節奏與錯峰發車</div>
     <div class="demo-grid">
       <button class="btn-demo on" id="btnRun" onclick="toggleRunning()">⏸️ 暫停／繼續行駛</button>
       <button class="btn-demo" id="btnSpeed" onclick="toggleSpeed()">⚡ 速度：1x（點此切換 4x）</button>
+      <button class="btn-demo" id="btnLaunchNow" onclick="launchWaitingBuses()" style="grid-column: span 2;">🚀 讓本縣市「待發車」班次立即提前發車</button>
     </div>
-    <div class="demo-group-lbl">🌦️ 天候與路口號誌</div>
+    <div class="demo-group-lbl">🚦 塞車路況、天候與路口號誌</div>
     <div class="demo-grid">
-      <button class="btn-demo" id="btnWeather" onclick="cycleWeather()">🌦️ 切換天氣（即時／高溫／雷雨）</button>
+      <button class="btn-demo" id="btnRushHour" onclick="toggleRushHour()">🚗 模擬尖峰塞車潮</button>
       <button class="btn-demo" id="btnToggleSignals" onclick="forceAllRedLights()">🚦 切換路口紅綠燈號誌</button>
+      <button class="btn-demo" id="btnWeather" onclick="cycleWeather()" style="grid-column: span 2;">🌦️ 切換天氣（現實即時／高溫／雷雨）</button>
     </div>
     <div class="demo-group-lbl">🚨 突發事件與自動加派接管演示</div>
     <div class="demo-grid">
       <button class="btn-demo" id="btnFire" onclick="triggerIncident('fire')">🔥 示範：失火接管（0.0002%）</button>
       <button class="btn-demo" id="btnCrash" onclick="triggerIncident('crash')">💥 示範：車禍接管（0.00001%）</button>
-      <button class="btn-demo" id="btnFullDemo" onclick="triggerIncident('full')" style="grid-column: span 2;">📦 示範：載量 100% 滿載・自動加派新車重跑路線</button>
+      <button class="btn-demo" id="btnFullDemo" onclick="triggerIncident('full')" style="grid-column: span 2;">📦 示範：載量 100% 滿載・自動加派新車接管</button>
     </div>
   </div>
 
   <div class="content">
     <div class="page active" id="page-home">
-      <div class="weather-strip" id="weatherBanner"></div>
-
-      <div class="card" style="padding:11px 14px;">
-        <div class="loc-bar">
-          <div>
-            <div style="font-size:11px; color:var(--muted); font-weight:700;">📍 目前所在位置（自動推薦最近清運車）</div>
-            <div style="font-size:14px; font-weight:800; margin-top:2px;" id="userLocName">燕巢區深水路一段（高科大燕巢校區）</div>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-sm" onclick="cycleUserLocation()">換路口</button>
-            <button class="btn-sm" onclick="useRealGPS()">手機 GPS</button>
-          </div>
-        </div>
+      <!-- 1. 跨縣市切換列 -->
+      <div class="city-tabs" id="cityTabs">
+        <button class="city-tab active" data-city="kaohsiung" onclick="switchCity('kaohsiung')">高雄市 (6線)</button>
+        <button class="city-tab" data-city="taichung" onclick="switchCity('taichung')">台中市 (3線)</button>
+        <button class="city-tab" data-city="taipei" onclick="switchCity('taipei')">台北市 (3線)</button>
       </div>
 
-      <!-- 直覺篩選與搜尋 -->
+      <!-- 2. 大概位置智慧搜尋系統 -->
+      <div class="area-search-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; font-weight:800; color:var(--primary-dark);">🔍 大概位置搜尋（輸入區名／地標／路名）</span>
+          <button class="btn-sm" style="padding:4px 8px; font-size:11px;" onclick="useRealGPS()">📍 手機GPS</button>
+        </div>
+        <div class="area-search-row">
+          <input type="text" class="search-input" id="areaSearchInput" placeholder="例：逢甲、信義、燕巢、大社、一中、士林..." onkeydown="if(event.key==='Enter') runAreaSearch()" />
+          <button class="btn-search" onclick="runAreaSearch()">查詢</button>
+        </div>
+        <div class="quick-area-tags">
+          <span class="area-tag" onclick="quickSearchArea('燕巢高科大')">燕巢高科大</span>
+          <span class="area-tag" onclick="quickSearchArea('大社觀音山')">大社觀音山</span>
+          <span class="area-tag" onclick="quickSearchArea('樹德科大')">樹德科大</span>
+          <span class="area-tag" onclick="quickSearchArea('台中逢甲')">台中逢甲</span>
+          <span class="area-tag" onclick="quickSearchArea('一中商圈')">一中商圈</span>
+          <span class="area-tag" onclick="quickSearchArea('台北信義')">台北信義</span>
+          <span class="area-tag" onclick="quickSearchArea('士林夜市')">士林夜市</span>
+        </div>
+        <div id="areaSearchResultBox" style="margin-top:8px; font-size:12px; color:#334155;"></div>
+      </div>
+
+      <!-- 3. 縣市即時氣象與塞車狀態 -->
+      <div class="weather-strip" id="weatherBanner"></div>
+      <div class="traffic-strip" id="trafficBanner"></div>
+
+      <!-- 4. 班次狀態篩選 -->
       <div class="filter-row" id="filterRow">
         <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部班次</button>
-        <button class="filter-chip" data-filter="nearest" onclick="setFilter('nearest')">📍 離我最近</button>
-        <button class="filter-chip" data-filter="soon" onclick="setFilter('soon')">🔔 即將到站／收運中</button>
-        <button class="filter-chip" data-filter="dispatch" onclick="setFilter('dispatch')">🚨 異常與接管</button>
+        <button class="filter-chip" data-filter="running" onclick="setFilter('running')">🚛 已發車執勤中</button>
+        <button class="filter-chip" data-filter="scheduled" onclick="setFilter('scheduled')">⏳ 待發車班表</button>
+        <button class="filter-chip" data-filter="nearest" onclick="setFilter('nearest')">📍 離搜尋點最近</button>
+        <button class="filter-chip" data-filter="jam" onclick="setFilter('jam')">🚗 塞車受影響</button>
       </div>
-      <input type="text" class="search-input" id="searchInput" placeholder="🔍 輸入車號或路名快速篩選（例：深水路、樹德、大社、KEA）..." oninput="renderHome()" />
 
       <div id="busListContainer"></div>
     </div>
@@ -503,11 +604,11 @@
       <div class="bus-pills" id="mapBusPills"></div>
 
       <div class="map-wrap">
-        <div class="map-mode-badge" id="mapModeLabel">沿真實道路軌跡（OpenStreetMap）</div>
+        <div class="map-mode-badge" id="mapModeLabel">真實道路軌跡＋塞車熱區</div>
         <div class="map-weather-pill" id="mapWeatherPill">☀️ 載入現實氣象中...</div>
         <div class="map-controls">
           <button class="map-ctrl-btn" onclick="centerSelectedBus()" title="對焦目前車輛">🎯 對焦車輛</button>
-          <button class="map-ctrl-btn" id="btnAllVehicles" onclick="toggleAllVehicles()" title="全區 8 路線總覽">🌐 全區總覽</button>
+          <button class="map-ctrl-btn" id="btnAllVehicles" onclick="toggleAllVehicles()" title="本市全路線總覽">🌐 本市總覽</button>
         </div>
         <div id="realMap"></div>
       </div>
@@ -519,7 +620,7 @@
   <div class="bottom-nav">
     <button class="nav-item active" id="nav-home" onclick="switchTab('home')">
       <span class="nav-icon">🏠</span>
-      <span>班次總覽</span>
+      <span>班次與搜尋</span>
     </button>
     <button class="nav-item" id="nav-map" onclick="switchTab('map')">
       <span class="nav-icon">🗺️</span>
@@ -533,6 +634,43 @@
 </div>
 
 <script>
+  // 縣市基本中心座標與天氣預設
+  const CITIES = {
+    kaohsiung: {
+      name: "高雄市",
+      districtLabel: "燕巢・楠梓・大社・仁武區",
+      center: [22.7960, 120.3760],
+      zoom: 13
+    },
+    taichung: {
+      name: "台中市",
+      districtLabel: "西屯・北屯・北區（逢甲／一中）",
+      center: [24.1680, 120.6650],
+      zoom: 13
+    },
+    taipei: {
+      name: "台北市",
+      districtLabel: "信義・大安・士林區",
+      center: [25.0480, 121.5450],
+      zoom: 13
+    }
+  };
+
+  // 大概位置快速搜尋資料庫（支援模糊比對）
+  const AREA_DIRECTORY = [
+    { keywords: ["燕巢", "高科大", "深水", "中民"], city: "kaohsiung", label: "高雄市燕巢區（高科大燕巢校區周邊）", lat: 22.7988, lng: 120.3748 },
+    { keywords: ["樹德", "橫山", "瓊林"], city: "kaohsiung", label: "高雄市燕巢區（樹德科技大學周邊）", lat: 22.7970, lng: 120.3548 },
+    { keywords: ["大社", "觀音山", "翠屏", "義大"], city: "kaohsiung", label: "高雄市大社區（觀音山・翠屏路商圈）", lat: 22.7815, lng: 120.4022 },
+    { keywords: ["楠梓", "創新", "土庫", "第一校區"], city: "kaohsiung", label: "高雄市楠梓區（高科大第一校區周邊）", lat: 22.7842, lng: 120.3680 },
+    { keywords: ["阿公店", "水庫", "菜寮"], city: "kaohsiung", label: "高雄市燕巢區（阿公店水庫管理站周邊）", lat: 22.8078, lng: 120.3992 },
+    { keywords: ["逢甲", "西屯", "台灣大道", "秋紅谷"], city: "taichung", label: "台中市西屯區（逢甲商圈・福星路周邊）", lat: 24.1788, lng: 120.6465 },
+    { keywords: ["北屯", "崇德", "松竹", "洲際"], city: "taichung", label: "台中市北屯區（崇德路・松竹路口周邊）", lat: 24.1815, lng: 120.6852 },
+    { keywords: ["一中", "北區", "三民路", "中友"], city: "taichung", label: "台中市北區（一中商圈・三民路周邊）", lat: 24.1512, lng: 120.6848 },
+    { keywords: ["信義", "101", "松仁", "市政府"], city: "taipei", label: "台北市信義區（台北101・松仁路周邊）", lat: 25.0339, lng: 121.5645 },
+    { keywords: ["大安", "忠孝", "復興", "東區"], city: "taipei", label: "台北市大安區（忠孝復興商圈周邊）", lat: 25.0418, lng: 121.5438 },
+    { keywords: ["士林", "夜市", "劍潭", "中正路"], city: "taipei", label: "台北市士林區（士林夜市・文林路周邊）", lat: 25.0882, lng: 121.5252 }
+  ];
+
   const WEATHER_PRESETS = [
     {
       icon: "☀️",
@@ -540,7 +678,7 @@
       outdoorTemp: 27,
       humidity: 64,
       rainProb: 10,
-      wind: "西北風 2 級",
+      wind: "微風 2 級",
       advice: "適合出門倒垃圾，車斗密閉溫差正常",
       isLive: false
     },
@@ -561,22 +699,37 @@
       humidity: 88,
       rainProb: 80,
       wind: "陣風 4 級",
-      advice: "雨天視線較差，行車速度自動微調並即時更新到站時間",
+      advice: "雨天易造成幹道壅塞，系統已自動納入塞車延誤估算",
       isLive: false
     }
   ];
 
+  // 跨縣市塞車熱區
+  const TRAFFIC_ZONES = [
+    // 高雄
+    { id: "TZ-KH1", city: "kaohsiung", name: "台22線旗楠路・燕巢交流道段", level: 2, speedKmh: 16, delayMin: 5, radiusMeters: 420, coords: [[22.7832, 120.3665], [22.7855, 120.3712], [22.7872, 120.3755]] },
+    { id: "TZ-KH2", city: "kaohsiung", name: "深水路一段・高科大校門周邊", level: 1, speedKmh: 26, delayMin: 2, radiusMeters: 380, coords: [[22.7972, 120.3710], [22.7988, 120.3748], [22.8005, 120.3782]] },
+    { id: "TZ-KH3", city: "kaohsiung", name: "大社中山路・三民路商圈中心", level: 2, speedKmh: 15, delayMin: 5, radiusMeters: 380, coords: [[22.7790, 120.3915], [22.7775, 120.3952], [22.7760, 120.3988]] },
+    // 台中
+    { id: "TZ-TC1", city: "taichung", name: "西屯福星路・逢甲夜市外圍", level: 2, speedKmh: 14, delayMin: 6, radiusMeters: 420, coords: [[24.1765, 120.6445], [24.1788, 120.6465], [24.1812, 120.6485]] },
+    { id: "TZ-TC2", city: "taichung", name: "北區三民路三段・一中商圈", level: 1, speedKmh: 23, delayMin: 3, radiusMeters: 380, coords: [[24.1485, 120.6832], [24.1512, 120.6848], [24.1542, 120.6865]] },
+    // 台北
+    { id: "TZ-TP1", city: "taipei", name: "信義松仁路・市府轉運周邊", level: 2, speedKmh: 13, delayMin: 6, radiusMeters: 420, coords: [[25.0339, 121.5645], [25.0375, 121.5668], [25.0408, 121.5675]] },
+    { id: "TZ-TP2", city: "taipei", name: "士林文林路・劍潭捷運站口", level: 1, speedKmh: 22, delayMin: 3, radiusMeters: 380, coords: [[25.0848, 121.5248], [25.0882, 121.5252], [25.0915, 121.5260]] }
+  ];
+
+  // 跨縣市路口紅綠燈
   const TRAFFIC_LIGHTS = [
-    { id: "TL-1", name: "中民路・中華路口", lat: 22.7948, lng: 120.3665, offset: 0 },
-    { id: "TL-2", name: "深水路・橫山路口", lat: 22.8018, lng: 120.3805, offset: 5 },
-    { id: "TL-3", name: "安招路・中興路口", lat: 22.8102, lng: 120.3675, offset: 9 },
-    { id: "TL-4", name: "台22線・創新路口", lat: 22.7855, lng: 120.3705, offset: 3 },
-    { id: "TL-5", name: "橫山路・樹德科大口", lat: 22.7972, lng: 120.3545, offset: 12 },
-    { id: "TL-6", name: "工程路・菜寮路口", lat: 22.8025, lng: 120.4024, offset: 7 },
-    { id: "TL-7", name: "土庫一路・清豐二路口", lat: 22.7805, lng: 120.3615, offset: 2 },
-    { id: "TL-8", name: "大社中山路・三民路口", lat: 22.7768, lng: 120.3965, offset: 11 },
-    { id: "TL-9", name: "成功南路・仕隆路口", lat: 22.8048, lng: 120.3502, offset: 6 },
-    { id: "TL-10", name: "義大路・角宿路口", lat: 22.7975, lng: 120.3898, offset: 14 }
+    { id: "TL-1", city: "kaohsiung", name: "中民路・中華路口", lat: 22.7948, lng: 120.3665, offset: 0 },
+    { id: "TL-2", city: "kaohsiung", name: "深水路・橫山路口", lat: 22.8018, lng: 120.3805, offset: 5 },
+    { id: "TL-3", city: "kaohsiung", name: "台22線・創新路口", lat: 22.7855, lng: 120.3705, offset: 3 },
+    { id: "TL-4", city: "kaohsiung", name: "大社中山路・三民路口", lat: 22.7768, lng: 120.3965, offset: 11 },
+    { id: "TL-5", city: "taichung", name: "福星路・河南路口", lat: 24.1775, lng: 120.6455, offset: 2 },
+    { id: "TL-6", city: "taichung", name: "崇德路・文心路口", lat: 24.1725, lng: 120.6850, offset: 8 },
+    { id: "TL-7", city: "taichung", name: "三民路・育才街口", lat: 24.1512, lng: 120.6848, offset: 14 },
+    { id: "TL-8", city: "taipei", name: "松仁路・信義路口", lat: 25.0339, lng: 121.5668, offset: 4 },
+    { id: "TL-9", city: "taipei", name: "忠孝東路・復興南路口", lat: 25.0418, lng: 121.5438, offset: 9 },
+    { id: "TL-10", city: "taipei", name: "文林路・基河路口", lat: 25.0882, lng: 121.5252, offset: 13 }
   ];
 
   function isTrafficLightRed(tl, tick) {
@@ -587,335 +740,270 @@
     return { name, lat, lng };
   }
 
+  // 輔助計算相對時間字串（HH:MM）
+  function formatClockOffset(offsetMin) {
+    const d = new Date(Date.now() + offsetMin * 60000);
+    return d.toTimeString().slice(0, 5);
+  }
+
+  // 跨縣市 12 條清運路線，每輛車具備不同的發車時間（startsInSec: 0=已發車執勤中, >0=尚在調度場等待發車）
   const ROUTES = [
+    // ================= 高雄市 (6 條路線) =================
     {
-      id: "KEA-8821",
-      baseId: "KEA-8821",
-      name: "路線 A・深水路－燕巢大學城主線",
-      roadNote: "中民路 → 深水路 → 橫山路 → 義大路 → 角宿路",
-      load: 64,
-      temp: 31.4,
-      progress: 3.4,
-      speedPerSec: 0.08,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 3,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#0f766e",
-      roadSnapped: false,
-      segmentPaths: [],
+      id: "KEA-8821", baseId: "KEA-8821", city: "kaohsiung", areaTag: "燕巢區",
+      name: "燕巢線 A・深水路大學城主線",
+      roadNote: "中民路 → 深水路 → 橫山路 → 義大路",
+      departOffsetMin: -18, startsInSec: 0, // 18 分鐘前已發車
+      load: 64, temp: 31.4, progress: 3.4, speedPerSec: 0.08, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 3, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#0f766e", roadSnapped: false, segmentPaths: [],
       stops: [
-        makeStop("1. 燕巢區公所清潔隊（中民路）", 22.7932, 120.3622),
-        makeStop("2. 中民路・燕巢農會前", 22.7941, 120.3645),
-        makeStop("3. 中華路・燕巢國小側門", 22.7955, 120.3672),
-        makeStop("4. 深水路西段・社區活動站", 22.7972, 120.3710),
-        makeStop("5. 深水路・高科大燕巢校區正門", 22.7988, 120.3748),
-        makeStop("6. 深水路一段・學生宿舍區", 22.8005, 120.3782),
-        makeStop("7. 橫山路・橫山社區入口", 22.8022, 120.3818),
-        makeStop("8. 橫山路東段・橫山活動中心", 22.8035, 120.3848),
-        makeStop("9. 義大路北口・聯絡道站", 22.8012, 120.3872),
-        makeStop("10. 義大路・義大醫院轉運口", 22.7988, 120.3888),
-        makeStop("11. 角宿路・角宿天后宮廣場", 22.7958, 120.3915),
-        makeStop("12. 鳳旗路・鳳雄國小前", 22.7928, 120.3942),
-        makeStop("13. 滾水路・滾水社區集運點", 22.7902, 120.3975),
-        makeStop("14. 安林路・燕巢工業區南站", 22.7872, 120.4012),
-        makeStop("15. 終點・南區資源轉運站", 22.7842, 120.4048)
+        makeStop("1. 燕巢區公所清潔隊（起點）", 22.7932, 120.3622),
+        makeStop("2. 中民路・燕巢農會前", 22.7945, 120.3658),
+        makeStop("3. 中華路・燕巢國小側門", 22.7962, 120.3695),
+        makeStop("4. 深水路・高科大燕巢校區正門", 22.7988, 120.3748),
+        makeStop("5. 深水路一段・學生宿舍區", 22.8012, 120.3792),
+        makeStop("6. 橫山路・橫山社區活動中心", 22.8035, 120.3845),
+        makeStop("7. 義大路・義大醫院聯絡道口", 22.7995, 120.3882),
+        makeStop("8. 角宿路・角宿天后宮廣場", 22.7958, 120.3915),
+        makeStop("9. 鳳旗路・鳳雄國小站", 22.7922, 120.3948),
+        makeStop("10. 終點・南區資源轉運站", 22.7842, 120.4048)
       ]
     },
     {
-      id: "KEB-3095",
-      baseId: "KEB-3095",
-      name: "路線 B・安招路－北區與阿公店支線",
-      roadNote: "安招路 → 瓊林路 → 尖山路 → 工程路",
-      load: 84,
-      temp: 32.1,
-      progress: 5.2,
-      speedPerSec: 0.075,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 5,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#2563eb",
-      roadSnapped: false,
-      segmentPaths: [],
+      id: "KEB-3095", baseId: "KEB-3095", city: "kaohsiung", areaTag: "燕巢北區",
+      name: "燕巢線 B・安招路阿公店支線",
+      roadNote: "安招路 → 中興路 → 尖山路 → 工程路",
+      departOffsetMin: -25, startsInSec: 0, // 25 分鐘前已發車
+      load: 84, temp: 32.1, progress: 5.2, speedPerSec: 0.075, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 5, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#2563eb", roadSnapped: false, segmentPaths: [],
       stops: [
-        makeStop("1. 安招路・北區車輛調度場", 22.8145, 120.3560),
-        makeStop("2. 安招路一段・北口住宅區", 22.8132, 120.3592),
-        makeStop("3. 安招路中段・農產集貨站", 22.8118, 120.3625),
-        makeStop("4. 瓊林路・瓊林社區公園", 22.8105, 120.3658),
-        makeStop("5. 中興路・燕巢北區市場", 22.8092, 120.3698),
-        makeStop("6. 湖仔內路・湖仔內路口", 22.8102, 120.3735),
-        makeStop("7. 尖山路西口・住宅聚落", 22.8112, 120.3768),
-        makeStop("8. 尖山路・尖山社區活動站", 22.8124, 120.3802),
-        makeStop("9. 金山路・金山國小前", 22.8138, 120.3838),
-        makeStop("10. 深水路二段・泥火山路口", 22.8122, 120.3878),
-        makeStop("11. 麒麟尾路・麒麟尾社區", 22.8102, 120.3918),
-        makeStop("12. 工程路北段・深水北站", 22.8082, 120.3962),
-        makeStop("13. 工程路・水庫南側觀景口", 22.8065, 120.4002),
-        makeStop("14. 東燕巢新村・社區集運點", 22.8048, 120.4038),
-        makeStop("15. 終點・北區資源回收廠", 22.8032, 120.4072)
+        makeStop("1. 安招路・北區調度場（起點）", 22.8145, 120.3560),
+        makeStop("2. 瓊林路・瓊林社區公園", 22.8110, 120.3652),
+        makeStop("3. 中興路・燕巢北區市場", 22.8092, 120.3698),
+        makeStop("4. 湖仔內路・湖仔內路口", 22.8105, 120.3745),
+        makeStop("5. 尖山路・尖山社區活動站", 22.8122, 120.3792),
+        makeStop("6. 金山路・金山國小前", 22.8140, 120.3840),
+        makeStop("7. 深水路二段・泥火山路口", 22.8118, 120.3888),
+        makeStop("8. 工程路・阿公店水庫管理站", 22.8078, 120.3992),
+        makeStop("9. 東燕巢新村・集運點", 22.8055, 120.4025),
+        makeStop("10. 終點・北區資源回收廠", 22.8032, 120.4072)
       ]
     },
     {
-      id: "KEC-7142",
-      baseId: "KEC-7142",
-      name: "路線 C・台22線旗楠路－大社快線",
-      roadNote: "高楠公路 → 台22線旗楠路 → 興楠路 → 中山路",
-      load: 36,
-      temp: 30.8,
-      progress: 2.1,
-      speedPerSec: 0.085,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 2,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#7c3aed",
-      roadSnapped: false,
-      segmentPaths: [],
+      id: "KEC-7142", baseId: "KEC-7142", city: "kaohsiung", areaTag: "楠梓・台22線",
+      name: "楠梓線 C・台22線旗楠路快線",
+      roadNote: "高楠公路 → 台22線旗楠路 → 創新路",
+      departOffsetMin: -12, startsInSec: 0, // 12 分鐘前已發車
+      load: 36, temp: 30.8, progress: 2.3, speedPerSec: 0.085, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 2, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#7c3aed", roadSnapped: false, segmentPaths: [],
       stops: [
-        makeStop("1. 高楠公路・楠梓都會公園站", 22.7745, 120.3490),
-        makeStop("2. 旗楠路一段・清豐路口", 22.7765, 120.3532),
-        makeStop("3. 旗楠路・惠民捷西路口", 22.7785, 120.3575),
-        makeStop("4. 旗楠路中段・土庫南口", 22.7808, 120.3618),
-        makeStop("5. 旗楠路・創新路交叉口", 22.7832, 120.3665),
-        makeStop("6. 旗楠路東段・高速聯絡道口", 22.7855, 120.3712),
-        makeStop("7. 旗楠路・燕巢交流道南側", 22.7872, 120.3755),
-        makeStop("8. 鳳旗路・鳳山厝社區", 22.7855, 120.3795),
-        makeStop("9. 興楠路・援中港聯絡道", 22.7832, 120.3838),
-        makeStop("10. 翠屏路北口・觀音山聯絡站", 22.7810, 120.3878),
-        makeStop("11. 中山路西段・大社住宅區", 22.7790, 120.3915),
-        makeStop("12. 中山路・大社商圈中心站", 22.7775, 120.3952),
-        makeStop("13. 三民路・大社果菜市場", 22.7760, 120.3988),
-        makeStop("14. 金龍路・大社工業聯絡站", 22.7745, 120.4018),
-        makeStop("15. 終點・南區環保處理廠", 22.7730, 120.4045)
+        makeStop("1. 高楠公路・楠梓都會公園（起點）", 22.7745, 120.3490),
+        makeStop("2. 旗楠路一段・清豐路口", 22.7768, 120.3538),
+        makeStop("3. 旗楠路・創新路交叉口", 22.7832, 120.3665),
+        makeStop("4. 創新路・高科大第一校區正門", 22.7842, 120.3680),
+        makeStop("5. 旗楠路・燕巢交流道南側", 22.7872, 120.3755),
+        makeStop("6. 鳳旗路・鳳山厝社區", 22.7852, 120.3782),
+        makeStop("7. 興楠路・援中港聯絡道", 22.7828, 120.3835),
+        makeStop("8. 終點・楠梓環保資源站", 22.7775, 120.3738)
       ]
     },
     {
-      id: "KED-5508",
-      baseId: "KED-5508",
-      name: "路線 D・阿公店水庫－東區山線",
-      roadNote: "田寮聯絡道 → 水庫路 → 工程路 → 菜寮路",
-      load: 51,
-      temp: 31.2,
-      progress: 6.4,
-      speedPerSec: 0.07,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 6,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#059669",
-      roadSnapped: false,
-      segmentPaths: [],
+      id: "KED-5508", baseId: "KED-5508", city: "kaohsiung", areaTag: "大社區",
+      name: "大社線 D・觀音山翠屏路清運車",
+      roadNote: "大社清潔隊 → 中山路 → 翠屏路 → 觀音山",
+      departOffsetMin: 1, startsInSec: 25, // 尚未出發：25 秒後才發車（錯峰班次）
+      load: 0, temp: 29.0, progress: 0, speedPerSec: 0.075, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 0, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#0891b2", roadSnapped: false, segmentPaths: [],
       stops: [
-        makeStop("1. 田寮聯絡道・東區山線起點", 22.8195, 120.3885),
-        makeStop("2. 鹿埔路北口・山線聚落", 22.8172, 120.3905),
-        makeStop("3. 鹿埔路・鹿埔社區活動站", 22.8150, 120.3925),
-        makeStop("4. 尖山嶺・山線清運點", 22.8128, 120.3945),
-        makeStop("5. 水庫路・阿公店水庫北入口", 22.8105, 120.3968),
-        makeStop("6. 工程路・阿公店水庫管理站", 22.8078, 120.3992),
-        makeStop("7. 工程路中段・水庫南堤口", 22.8052, 120.4010),
-        makeStop("8. 工程路南段・住宅聚落", 22.8028, 120.4024),
-        makeStop("9. 菜寮路・菜寮社區活動中心", 22.8002, 120.4036),
-        makeStop("10. 小滾水路・小滾水站", 22.7975, 120.4048),
-        makeStop("11. 埤底巷・埤底清運點", 22.7948, 120.4060),
-        makeStop("12. 臥牛巷・臥牛巷口", 22.7920, 120.4072),
-        makeStop("13. 東區農產集貨場", 22.7895, 120.4084),
-        makeStop("14. 東區環保轉運前站", 22.7872, 120.4094),
-        makeStop("15. 終點・東區轉運站", 22.7850, 120.4102)
+        makeStop("1. 大社清潔隊出發站（起點）", 22.7740, 120.3885),
+        makeStop("2. 三民路・大社公有市場", 22.7768, 120.3945),
+        makeStop("3. 中山路・大社商圈中心站", 22.7775, 120.3952),
+        makeStop("4. 翠屏路・大社國小側門", 22.7798, 120.3995),
+        makeStop("5. 觀音山風景區・停車場口", 22.7832, 120.4050),
+        makeStop("6. 學府路・義守大學聯絡口", 22.7855, 120.4068),
+        makeStop("7. 義大路南段・飯店園區側", 22.7912, 120.4015),
+        makeStop("8. 終點・大社資源回收中心", 22.7838, 120.3865)
       ]
     },
     {
-      id: "KEE-9214",
-      baseId: "KEE-9214",
-      name: "路線 E・橫山路－樹德科大西區線",
+      id: "KEE-9214", baseId: "KEE-9214", city: "kaohsiung", areaTag: "燕巢西區",
+      name: "西區線 E・橫山路樹德科大線",
       roadNote: "仕隆路 → 成功南路 → 橫山路 → 瓊林西路",
-      load: 42,
-      temp: 30.5,
-      progress: 4.1,
-      speedPerSec: 0.078,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 4,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#d97706",
-      roadSnapped: false,
-      segmentPaths: [],
+      departOffsetMin: -15, startsInSec: 0,
+      load: 42, temp: 30.5, progress: 3.1, speedPerSec: 0.078, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 3, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#d97706", roadSnapped: false, segmentPaths: [],
       stops: [
         makeStop("1. 橋頭聯絡道・西區起點站", 22.8100, 120.3475),
-        makeStop("2. 仕隆路北段・住宅社區", 22.8075, 120.3488),
-        makeStop("3. 仕隆路・仕隆社區活動站", 22.8050, 120.3502),
-        makeStop("4. 成功南路・橋頭接駁口", 22.8025, 120.3516),
-        makeStop("5. 滾水西路・滾水西站", 22.7998, 120.3532),
-        makeStop("6. 橫山路・樹德科技大學正門", 22.7970, 120.3548),
-        makeStop("7. 橫山路東段・學生商圈站", 22.7945, 120.3566),
-        makeStop("8. 橫山南路・社區集運點", 22.7922, 120.3584),
-        makeStop("9. 鳳山厝西路・西站", 22.7900, 120.3602),
-        makeStop("10. 典寶溪橋頭・河岸清運點", 22.7878, 120.3618),
-        makeStop("11. 筆秀路・筆秀社區站", 22.7856, 120.3634),
-        makeStop("12. 瓊林西路北口・住宅區", 22.7836, 120.3650),
-        makeStop("13. 瓊林西路南段・里民中心", 22.7818, 120.3666),
-        makeStop("14. 西區環保綠能公園", 22.7802, 120.3680),
-        makeStop("15. 終點・西區轉運中心", 22.7785, 120.3692)
+        makeStop("2. 仕隆路・仕隆社區前", 22.8068, 120.3492),
+        makeStop("3. 成功南路・橋頭接駁口", 22.8035, 120.3510),
+        makeStop("4. 橫山路・樹德科技大學正門", 22.7970, 120.3548),
+        makeStop("5. 橫山路東段・學生商圈", 22.7938, 120.3568),
+        makeStop("6. 典寶溪橋頭・河岸清運點", 22.7880, 120.3608),
+        makeStop("7. 瓊林西路・住宅區", 22.7832, 120.3648),
+        makeStop("8. 終點・西區轉運中心", 22.7785, 120.3692)
       ]
     },
     {
-      id: "KEF-4109",
-      baseId: "KEF-4109",
-      name: "路線 F・楠梓土庫－第一校區環線",
-      roadNote: "土庫一路 → 創新路 → 卓越路 → 清豐二路",
-      load: 29,
-      temp: 30.2,
-      progress: 1.8,
-      speedPerSec: 0.082,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 1,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#db2777",
-      roadSnapped: false,
-      segmentPaths: [],
+      id: "KEF-4109", baseId: "KEF-4109", city: "kaohsiung", areaTag: "燕巢夜間加開",
+      name: "夜間線 F・燕巢中民環狀接駁班",
+      roadNote: "燕巢轉運站 → 中民路 → 中興路 → 瓊林路",
+      departOffsetMin: 2, startsInSec: 55, // 尚未出發：55 秒後發車
+      load: 0, temp: 28.5, progress: 0, speedPerSec: 0.08, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 0, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#db2777", roadSnapped: false, segmentPaths: [],
       stops: [
-        makeStop("1. 土庫清運調度站", 22.7825, 120.3575),
-        makeStop("2. 土庫一路・住宅大樓群", 22.7818, 120.3602),
-        makeStop("3. 清豐二路・清豐公園前", 22.7805, 120.3628),
-        makeStop("4. 創新路西口・商圈集運點", 22.7822, 120.3655),
-        makeStop("5. 創新路・高科大第一校區正門", 22.7842, 120.3680),
-        makeStop("6. 卓越路・第一校區東側門", 22.7858, 120.3705),
-        makeStop("7. 卓越路北段・科技園區站", 22.7875, 120.3728),
-        makeStop("8. 旗楠路・燕巢南聯絡站", 22.7888, 120.3748),
-        makeStop("9. 安林一街・工業區西入口", 22.7898, 120.3775),
-        makeStop("10. 安林路・廠商聯合清運站", 22.7885, 120.3805),
-        makeStop("11. 鳳旗路西段・社區活動站", 22.7865, 120.3825),
-        makeStop("12. 興楠路北口・聯絡道站", 22.7842, 120.3838),
-        makeStop("13. 楠梓東路・住宅集運點", 22.7818, 120.3812),
-        makeStop("14. 旗楠路南側・轉運前站", 22.7795, 120.3775),
-        makeStop("15. 終點・楠梓環保資源站", 22.7775, 120.3738)
-      ]
-    },
-    {
-      id: "KEG-6380",
-      baseId: "KEG-6380",
-      name: "路線 G・大社觀音山－翠屏路清運線",
-      roadNote: "翠屏路 → 觀音山風景區口 → 中山路 → 金龍路",
-      load: 58,
-      temp: 31.6,
-      progress: 4.6,
-      speedPerSec: 0.074,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 4,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#0891b2",
-      roadSnapped: false,
-      segmentPaths: [],
-      stops: [
-        makeStop("1. 大社清潔隊出發站", 22.7740, 120.3885),
-        makeStop("2. 金龍路・大社住宅區", 22.7755, 120.3912),
-        makeStop("3. 三民路・大社公有市場", 22.7768, 120.3945),
-        makeStop("4. 中山路・大社郵局前", 22.7782, 120.3972),
-        makeStop("5. 翠屏路・大社國小側門", 22.7798, 120.3995),
-        makeStop("6. 翠屏路中段・觀音山腳站", 22.7815, 120.4022),
-        makeStop("7. 觀音山風景區・停車場口", 22.7832, 120.4050),
-        makeStop("8. 學府路・義守大學聯絡口", 22.7855, 120.4068),
-        makeStop("9. 義大二路・社區集運點", 22.7880, 120.4045),
-        makeStop("10. 義大路南段・飯店園區側", 22.7912, 120.4015),
-        makeStop("11. 義大路中段・聯絡道站", 22.7945, 120.3982),
-        makeStop("12. 角宿南路・聚落清運點", 22.7932, 120.3948),
-        makeStop("13. 鳳旗路中段・鳳雄社區", 22.7905, 120.3915),
-        makeStop("14. 興楠路東段・大社北口", 22.7872, 120.3885),
-        makeStop("15. 終點・大社資源回收中心", 22.7838, 120.3865)
-      ]
-    },
-    {
-      id: "KEH-1947",
-      baseId: "KEH-1947",
-      name: "路線 H・燕巢中民－安招環狀接駁線",
-      roadNote: "中民路 → 中興路 → 安招路 → 瓊林路 → 中華路",
-      load: 73,
-      temp: 31.9,
-      progress: 7.2,
-      speedPerSec: 0.08,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 7,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#4f46e5",
-      roadSnapped: false,
-      segmentPaths: [],
-      stops: [
-        makeStop("1. 燕巢轉運調度中心", 22.7925, 120.3605),
+        makeStop("1. 燕巢轉運調度中心（起點）", 22.7925, 120.3605),
         makeStop("2. 中民路・衛生所前站", 22.7942, 120.3635),
-        makeStop("3. 中民路東段・圖書館前", 22.7958, 120.3662),
-        makeStop("4. 中興南路・農會集貨站", 22.7982, 120.3672),
-        makeStop("5. 中興路・燕巢國中正門", 22.8012, 120.3680),
-        makeStop("6. 中興北路・傳統市場口", 22.8045, 120.3688),
-        makeStop("7. 中興路・北區民生商圈", 22.8078, 120.3695),
-        makeStop("8. 安招路・安招社區活動站", 22.8112, 120.3655),
-        makeStop("9. 安招路西段・西燕巢聚落", 22.8132, 120.3612),
-        makeStop("10. 瓊林北路・瓊林里民中心", 22.8098, 120.3585),
-        makeStop("11. 瓊林路・瓊林國小前", 22.8065, 120.3572),
-        makeStop("12. 瓊林南路・社區集運點", 22.8032, 120.3565),
-        makeStop("13. 滾水路西口・聯絡站", 22.7998, 120.3578),
-        makeStop("14. 中華路西段・西燕巢入口", 22.7968, 120.3595),
-        makeStop("15. 終點・燕巢清潔隊總站", 22.7932, 120.3618)
+        makeStop("3. 中興路・燕巢國中正門", 22.8012, 120.3680),
+        makeStop("4. 中興北路・傳統市場口", 22.8045, 120.3688),
+        makeStop("5. 安招路・安招社區活動站", 22.8112, 120.3655),
+        makeStop("6. 瓊林路・瓊林國小前", 22.8065, 120.3572),
+        makeStop("7. 終點・燕巢清潔隊總站", 22.7932, 120.3618)
+      ]
+    },
+
+    // ================= 台中市 (3 條路線) =================
+    {
+      id: "TCA-1024", baseId: "TCA-1024", city: "taichung", areaTag: "西屯區・逢甲",
+      name: "西屯線 A・逢甲商圈福星路主線",
+      roadNote: "西屯清潔隊 → 河南路 → 福星路 → 逢甲路 → 台灣大道",
+      departOffsetMin: -14, startsInSec: 0,
+      load: 58, temp: 30.2, progress: 2.5, speedPerSec: 0.08, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 2, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#0f766e", roadSnapped: false, segmentPaths: [],
+      stops: [
+        makeStop("1. 西屯區清潔隊（起點）", 24.1835, 120.6380),
+        makeStop("2. 河南路二段・至善路口", 24.1795, 120.6425),
+        makeStop("3. 福星路・逢甲夜市西門站", 24.1788, 120.6465),
+        makeStop("4. 逢甲路・逢甲大學正門口", 24.1782, 120.6492),
+        makeStop("5. 西屯路二段・住宅商圈", 24.1735, 120.6525),
+        makeStop("6. 台灣大道三段・新光三越側", 24.1652, 120.6448),
+        makeStop("7. 市政北七路・秋紅谷生態公園", 24.1678, 120.6395),
+        makeStop("8. 終點・文山資源回收廠聯絡站", 24.1610, 120.6320)
+      ]
+    },
+    {
+      id: "TCB-2088", baseId: "TCB-2088", city: "taichung", areaTag: "北區・一中商圈",
+      name: "北區線 B・一中商圈三民路清運線",
+      roadNote: "北區調度場 → 崇德路 → 三民路三段 → 一中街",
+      departOffsetMin: -20, startsInSec: 0,
+      load: 72, temp: 31.0, progress: 3.2, speedPerSec: 0.075, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 3, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#2563eb", roadSnapped: false, segmentPaths: [],
+      stops: [
+        makeStop("1. 北區進化北路調度站（起點）", 24.1625, 120.6815),
+        makeStop("2. 崇德路一段・新民高中前", 24.1585, 120.6838),
+        makeStop("3. 三民路三段・中友百貨前", 24.1532, 120.6845),
+        makeStop("4. 三民路・一中商圈台中科大口", 24.1512, 120.6848),
+        makeStop("5. 雙十路一段・台中公園北側", 24.1465, 120.6855),
+        makeStop("6. 精武路・社區集運點", 24.1445, 120.6910),
+        makeStop("7. 終點・東區轉運處理站", 24.1410, 120.6965)
+      ]
+    },
+    {
+      id: "TCC-3319", baseId: "TCC-3319", city: "taichung", areaTag: "北屯區",
+      name: "北屯線 C・崇德松竹夜間班次",
+      roadNote: "松竹路 → 崇德路三段 → 文心路四段",
+      departOffsetMin: 1, startsInSec: 35, // 尚未出發：35 秒後發車
+      load: 0, temp: 27.8, progress: 0, speedPerSec: 0.08, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 0, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#7c3aed", roadSnapped: false, segmentPaths: [],
+      stops: [
+        makeStop("1. 北屯松竹調度場（起點）", 24.1865, 120.6860),
+        makeStop("2. 崇德路三段・松竹路口", 24.1815, 120.6852),
+        makeStop("3. 崇德路二段・民俗公園站", 24.1765, 120.6850),
+        makeStop("4. 文心路四段・捷運文心崇德站", 24.1725, 120.6850),
+        makeStop("5. 昌平路一段・北屯市場", 24.1695, 120.6915),
+        makeStop("6. 終點・北屯資源回收場", 24.1750, 120.6980)
+      ]
+    },
+
+    // ================= 台北市 (3 條路線) =================
+    {
+      id: "TPA-5102", baseId: "TPA-5102", city: "taipei", areaTag: "信義區",
+      name: "信義線 A・松仁路101商圈主線",
+      roadNote: "信義清潔隊 → 松仁路 → 信義路五段 → 忠孝東路",
+      departOffsetMin: -16, startsInSec: 0,
+      load: 61, temp: 29.8, progress: 2.4, speedPerSec: 0.08, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 2, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#0f766e", roadSnapped: false, segmentPaths: [],
+      stops: [
+        makeStop("1. 信義區吳興街調度站（起點）", 25.0265, 121.5635),
+        makeStop("2. 松仁路・信義威秀影城側", 25.0339, 121.5668),
+        makeStop("3. 信義路五段・台北101世貿站", 25.0335, 121.5638),
+        makeStop("4. 松高路・市政府轉運站南側", 25.0395, 121.5662),
+        makeStop("5. 忠孝東路五段・永春市場口", 25.0408, 121.5762),
+        makeStop("6. 松山路・五分埔商圈站", 25.0465, 121.5782),
+        makeStop("7. 終點・內湖焚化廠聯絡站", 25.0550, 121.5850)
+      ]
+    },
+    {
+      id: "TPB-6209", baseId: "TPB-6209", city: "taipei", areaTag: "大安區",
+      name: "大安線 B・忠孝復興東區清運線",
+      roadNote: "復興南路 → 忠孝東路四段 → 敦化南路 → 仁愛路",
+      departOffsetMin: -10, startsInSec: 0,
+      load: 45, temp: 29.2, progress: 1.8, speedPerSec: 0.078, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 1, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#2563eb", roadSnapped: false, segmentPaths: [],
+      stops: [
+        makeStop("1. 大安區市民大道調度場（起點）", 25.0448, 121.5435),
+        makeStop("2. 忠孝東路四段・忠孝復興站", 25.0418, 121.5438),
+        makeStop("3. 忠孝東路四段・忠孝敦化商圈", 25.0415, 121.5512),
+        makeStop("4. 仁愛路四段・國父紀念館西側", 25.0378, 121.5565),
+        makeStop("5. 敦化南路二段・遠企中心前", 25.0265, 121.5492),
+        makeStop("6. 終點・大安資源回收轉運站", 25.0210, 121.5450)
+      ]
+    },
+    {
+      id: "TPC-7741", baseId: "TPC-7741", city: "taipei", areaTag: "士林區・夜市",
+      name: "士林線 C・文林路夜市夜間專車",
+      roadNote: "承德路 → 基河路 → 文林路 → 中正路",
+      departOffsetMin: 1, startsInSec: 40, // 尚未出發：40 秒後發車
+      load: 0, temp: 26.5, progress: 0, speedPerSec: 0.08, delayMin: 0,
+      incidentType: null, isFullReturning: false, returnCountdown: 0, collectingCountdown: 0,
+      lastCollectedStopIdx: 0, waitingRedLight: false, activeTrafficZone: null, dispatchCount: 0,
+      color: "#d97706", roadSnapped: false, segmentPaths: [],
+      stops: [
+        makeStop("1. 士林承德路調度站（起點）", 25.0835, 121.5215),
+        makeStop("2. 基河路・劍潭捷運站西側", 25.0852, 121.5245),
+        makeStop("3. 文林路・士林夜市陽明戲院口", 25.0882, 121.5252),
+        makeStop("4. 中正路・士林捷運站商圈", 25.0935, 121.5265),
+        makeStop("5. 中山北路五段・士林官邸前", 25.0955, 121.5315),
+        makeStop("6. 終點・北投資源回收轉運廠", 25.1020, 121.5220)
       ]
     }
   ];
 
-  const USER_PRESETS = [
-    { name: "燕巢區深水路一段（高科大燕巢校區）", lat: 22.7988, lng: 120.3748 },
-    { name: "燕巢區中興路（燕巢北區市場）", lat: 22.8092, lng: 120.3698 },
-    { name: "楠梓區創新路（第一校區周邊）", lat: 22.7842, lng: 120.3680 },
-    { name: "燕巢區工程路（阿公店水庫管理站）", lat: 22.8078, lng: 120.3992 },
-    { name: "燕巢區橫山路（樹德科技大學前）", lat: 22.7970, lng: 120.3548 },
-    { name: "大社區翠屏路（觀音山風景區口）", lat: 22.7815, lng: 120.4022 }
-  ];
-
   let state = {
     tab: "home",
+    currentCity: "kaohsiung",
     selectedBusId: "KEA-8821",
-    userLocIdx: 0,
-    userPos: { ...USER_PRESETS[0] },
+    userPos: { name: "高雄市燕巢區（高科大燕巢校區周邊）", lat: 22.7988, lng: 120.3748 },
     weatherIdx: 0,
     filterMode: "all",
+    rushHourMode: false,
     running: true,
     speedMultiplier: 1,
     showAllVehicles: false,
     systemAlert: "",
-    tickCount: 0,
-    roadSnapCount: 0
+    areaSearchSummary: "",
+    tickCount: 0
   };
 
   function calcGeoMeters(lat1, lng1, lat2, lng2) {
@@ -924,6 +1012,18 @@
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
     return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  function detectTrafficZone(city, lat, lng) {
+    let worst = null;
+    for (const tz of TRAFFIC_ZONES) {
+      if (tz.city !== city || tz.level === 0) continue;
+      const hit = tz.coords.some(c => calcGeoMeters(lat, lng, c[0], c[1]) <= tz.radiusMeters);
+      if (hit && (!worst || tz.level > worst.level)) {
+        worst = tz;
+      }
+    }
+    return worst;
   }
 
   function interpolateAlongSegment(bus, segIdx, frac) {
@@ -948,6 +1048,7 @@
   }
 
   async function snapRouteToRealRoads(bus) {
+    if (bus.roadSnapped) return;
     try {
       const coordsParam = bus.stops.map(s => `${s.lng},${s.lat}`).join(";");
       const url = `https://router.project-osrm.org/route/v1/driving/${coordsParam}?overview=false&steps=true`;
@@ -975,12 +1076,12 @@
       }
       bus.segmentPaths = segPaths;
       bus.roadSnapped = true;
-      state.roadSnapCount += 1;
     } catch (e) {}
   }
 
-  async function snapAllRoutesToRoads() {
-    for (const bus of ROUTES) {
+  async function snapCityRoutesToRoads(city) {
+    const cityRoutes = ROUTES.filter(r => r.city === city);
+    for (const bus of cityRoutes) {
       await snapRouteToRealRoads(bus);
     }
     renderAll();
@@ -996,18 +1097,10 @@
     const curLat = pos.lat;
     const curLng = pos.lng;
 
-    const isFinished = clamped >= maxIdx - 0.01;
-    const nextStopIdx = bus.collectingCountdown > 0 ? Math.round(clamped) : (isFinished ? maxIdx : segIdx + 1);
-    const nextStop = bus.stops[nextStopIdx];
-    const remainSegsToNext = bus.collectingCountdown > 0 ? 0 : Math.max(0, nextStopIdx - clamped);
-    const rainDelay = state.weatherIdx === 2 ? 1 : 0;
-    const remainSecToNext = Math.round(remainSegsToNext * 140 + (bus.delayMin + rainDelay) * 60);
-    const remainMetersToNext = bus.collectingCountdown > 0 ? 0 : calcGeoMeters(curLat, curLng, nextStop.lat, nextStop.lng);
-    const isArrivingSoon = !isFinished && !bus.isFullReturning && !bus.incidentType && bus.collectingCountdown === 0 && (remainSecToNext <= 60 || remainMetersToNext <= 150);
+    const tz = bus.startsInSec > 0 ? null : detectTrafficZone(bus.city, curLat, curLng);
+    bus.activeTrafficZone = tz;
 
-    const etaDate = new Date(Date.now() + remainSecToNext * 1000);
-    const etaStr = etaDate.toTimeString().slice(0, 5);
-
+    // 離搜尋位置最近的站點
     let nearestIdx = 0;
     let minDist = Infinity;
     bus.stops.forEach((st, idx) => {
@@ -1019,14 +1112,44 @@
     });
     const nearestStop = bus.stops[nearestIdx];
     const walkMeters = minDist;
-    const hasPassedNearest = clamped > nearestIdx + 0.05 && bus.collectingCountdown === 0;
+
+    // 發車時間與抵達最近站預估時間
+    const departTimeStr = formatClockOffset(bus.departOffsetMin);
+    const isScheduled = bus.startsInSec > 0;
+
+    const isFinished = clamped >= maxIdx - 0.01;
+    const nextStopIdx = isScheduled ? 0 : (bus.collectingCountdown > 0 ? Math.round(clamped) : (isFinished ? maxIdx : segIdx + 1));
+    const nextStop = bus.stops[nextStopIdx];
+
+    const remainSegsToNext = isScheduled ? 0 : (bus.collectingCountdown > 0 ? 0 : Math.max(0, nextStopIdx - clamped));
+    const rainDelay = state.weatherIdx === 2 ? 1 : 0;
+    const jamDelay = tz ? tz.delayMin : 0;
+    const totalDelayMin = bus.delayMin + rainDelay + jamDelay;
+
+    const remainSecToNext = isScheduled
+      ? bus.startsInSec
+      : Math.round(remainSegsToNext * 140 + totalDelayMin * 60);
+
+    const remainMetersToNext = (isScheduled || bus.collectingCountdown > 0) ? 0 : calcGeoMeters(curLat, curLng, nextStop.lat, nextStop.lng);
+    const isArrivingSoon = !isScheduled && !isFinished && !bus.isFullReturning && !bus.incidentType && bus.collectingCountdown === 0 && (remainSecToNext <= 60 || remainMetersToNext <= 150);
+
+    const etaDate = new Date(Date.now() + remainSecToNext * 1000);
+    const etaStr = etaDate.toTimeString().slice(0, 5);
+
+    // 抵達「離你最近站點」的預估時間
+    const segsToNearest = isScheduled ? nearestIdx : Math.max(0, nearestIdx - clamped);
+    const secToNearest = (isScheduled ? bus.startsInSec : 0) + Math.round(segsToNearest * 140 + totalDelayMin * 60);
+    const nearestEtaStr = new Date(Date.now() + secToNearest * 1000).toTimeString().slice(0, 5);
+
+    const hasPassedNearest = !isScheduled && clamped > nearestIdx + 0.05 && bus.collectingCountdown === 0;
     const passedAgoMin = hasPassedNearest ? Math.max(1, Math.round((clamped - nearestIdx) * 2.5)) : 0;
 
     return {
-      curLat, curLng, segIdx, frac,
+      curLat, curLng, segIdx, frac, tz, totalDelayMin,
+      isScheduled, departTimeStr,
       isFinished, nextStopIdx, nextStop,
       remainSecToNext, remainMetersToNext, isArrivingSoon,
-      etaStr, nearestIdx, nearestStop, walkMeters,
+      etaStr, nearestIdx, nearestStop, walkMeters, nearestEtaStr,
       hasPassedNearest, passedAgoMin
     };
   }
@@ -1041,8 +1164,8 @@
 
   async function fetchRealWeather() {
     try {
-      const lat = state.userPos.lat || 22.7988;
-      const lng = state.userPos.lng || 120.3748;
+      const lat = state.userPos.lat;
+      const lng = state.userPos.lng;
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia%2FTaipei`;
       const res = await fetch(url);
       if (!res.ok) return;
@@ -1055,6 +1178,7 @@
       const code = cur.weather_code;
       const isRain = code >= 51;
       const isHot = !isRain && temp >= 31;
+      const cityName = CITIES[state.currentCity].name;
 
       WEATHER_PRESETS[0] = {
         icon: isRain ? "⛈️" : (isHot ? "🔥" : "☀️"),
@@ -1064,13 +1188,136 @@
         rainProb: isRain ? 80 : 15,
         wind: `風速 ${Math.round(cur.wind_speed_10m)} km/h`,
         advice: isRain
-          ? "已連線氣象站偵測到降雨，自動微調行車節奏與到站時間"
-          : (isHot ? "已連線氣象站偵測到高溫，加強車斗蓄熱監測" : "已即時同步高雄燕巢真實室外氣溫與濕度"),
+          ? `已連線氣象站偵測到${cityName}降雨，自動微調行車節奏`
+          : (isHot ? `已連線氣象站偵測到${cityName}高溫，加強車斗蓄熱監測` : `已即時同步${cityName}真實室外氣溫與濕度`),
         isLive: true
       };
       state.weatherIdx = 0;
       renderAll();
     } catch (e) {}
+  }
+
+  // 切換縣市
+  function switchCity(cityKey, keepUserPos = false) {
+    state.currentCity = cityKey;
+    document.querySelectorAll(".city-tab").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.city === cityKey);
+    });
+
+    const cityRoutes = ROUTES.filter(r => r.city === cityKey);
+    if (cityRoutes.length > 0 && !cityRoutes.some(r => r.id === state.selectedBusId)) {
+      state.selectedBusId = cityRoutes[0].id;
+    }
+
+    if (!keepUserPos) {
+      const defaultDir = AREA_DIRECTORY.find(a => a.city === cityKey);
+      if (defaultDir) {
+        state.userPos = { name: defaultDir.label, lat: defaultDir.lat, lng: defaultDir.lng };
+      }
+      state.areaSearchSummary = "";
+    }
+
+    fetchRealWeather();
+    snapCityRoutesToRoads(cityKey);
+    renderAll();
+
+    if (leafletMap) {
+      const c = CITIES[cityKey];
+      leafletMap.setView(c.center, c.zoom);
+    }
+  }
+
+  // 大概位置智慧搜尋系統
+  function quickSearchArea(keyword) {
+    document.getElementById("areaSearchInput").value = keyword;
+    runAreaSearch();
+  }
+
+  function runAreaSearch() {
+    const raw = (document.getElementById("areaSearchInput").value || "").trim();
+    if (!raw) {
+      state.areaSearchSummary = "";
+      renderHome();
+      return;
+    }
+    const q = raw.toLowerCase();
+
+    // 1. 先從大概位置資料庫比對
+    let matchedArea = AREA_DIRECTORY.find(item =>
+      item.keywords.some(k => q.includes(k.toLowerCase()) || k.toLowerCase().includes(q)) ||
+      item.label.toLowerCase().includes(q)
+    );
+
+    // 2. 若未命中地標庫，則從所有縣市路線站名中比對
+    if (!matchedArea) {
+      for (const r of ROUTES) {
+        const hitStop = r.stops.find(s => s.name.toLowerCase().includes(q) || r.areaTag.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+        if (hitStop) {
+          matchedArea = {
+            city: r.city,
+            label: `${CITIES[r.city].name}・${hitStop.name} 周邊`,
+            lat: hitStop.lat,
+            lng: hitStop.lng
+          };
+          break;
+        }
+      }
+    }
+
+    if (!matchedArea) {
+      state.areaSearchSummary = `<div style="background:#fef2f2; color:#991b1b; padding:8px 10px; border-radius:8px; font-weight:700;">找不到「${raw}」相關區域，試試輸入：燕巢、大社、樹德、逢甲、一中、信義、士林。</div>`;
+      renderHome();
+      return;
+    }
+
+    // 自動切換到該縣市並更新定位點
+    state.userPos = { name: matchedArea.label, lat: matchedArea.lat, lng: matchedArea.lng };
+    if (state.currentCity !== matchedArea.city) {
+      switchCity(matchedArea.city, true);
+    }
+
+    // 找出該縣市距離此位置最近的班次並列出發車與抵達資訊
+    const cityBuses = ROUTES.filter(r => r.city === matchedArea.city)
+      .map(bus => ({ bus, t: getBusTelemetry(bus) }))
+      .sort((a, b) => a.t.walkMeters - b.t.walkMeters);
+
+    const topMatches = cityBuses.slice(0, 2);
+    const summaryLines = topMatches.map(({ bus, t }) => {
+      const statusText = t.isScheduled
+        ? `⏳ <b>${t.departTimeStr} 發車</b>（${formatCountdown(t.remainSecToNext)}後出發）`
+        : (t.hasPassedNearest ? `✅ ${t.departTimeStr} 已發車（已過站）` : `🚛 ${t.departTimeStr} 已發車・預計 <b>${t.nearestEtaStr}</b> 抵「${t.nearestStop.name}」`);
+      return `<div style="margin-top:4px;">• <b>${bus.id}</b>（${bus.areaTag}）：${statusText}</div>`;
+    }).join("");
+
+    state.areaSearchSummary = `
+      <div style="background:#ecfdf5; border:1px solid #6ee7b7; padding:8px 10px; border-radius:9px; color:#065f46;">
+        <div style="font-weight:800;">📍 搜尋位置：${matchedArea.label}</div>
+        ${summaryLines}
+      </div>
+    `;
+    state.filterMode = "nearest";
+    document.querySelectorAll(".filter-chip").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.filter === "nearest");
+    });
+    renderAll();
+  }
+
+  function launchWaitingBuses() {
+    let count = 0;
+    ROUTES.forEach(bus => {
+      if (bus.city === state.currentCity && bus.startsInSec > 0) {
+        bus.startsInSec = 0;
+        bus.departOffsetMin = 0;
+        bus.load = Math.floor(Math.random() * 12) + 8;
+        count += 1;
+      }
+    });
+    if (count > 0) {
+      state.systemAlert = `🚀 已觸發提前調度：${CITIES[state.currentCity].name}共有 ${count} 班待發車班次已提前發車進入路線！`;
+    } else {
+      state.systemAlert = `ℹ️ ${CITIES[state.currentCity].name}目前所有班次皆已發車執勤中。`;
+    }
+    renderAll();
   }
 
   function dispatchReplacementVehicle(problemBus, reason) {
@@ -1085,6 +1332,8 @@
       ...problemBus,
       id: newId,
       name: `${problemBus.name}（緊急加派接管車）`,
+      departOffsetMin: 0,
+      startsInSec: 0,
       load: reason === "full" ? 6 : Math.min(45, Math.round(problemBus.load * 0.4)),
       temp: WEATHER_PRESETS[state.weatherIdx].outdoorTemp + 4.2,
       progress: resumeProgress,
@@ -1093,6 +1342,7 @@
       returnCountdown: 0,
       collectingCountdown: 0,
       waitingRedLight: false,
+      activeTrafficZone: null,
       dispatchCount: 0,
       stops: problemBus.stops.map(s => ({ ...s })),
       segmentPaths: problemBus.segmentPaths ? problemBus.segmentPaths.map(p => [...p]) : [],
@@ -1113,8 +1363,12 @@
   }
 
   function triggerIncident(type) {
-    const bus = ROUTES.find(b => b.id === state.selectedBusId && !b.isFullReturning && !b.incidentType) || ROUTES[0];
-    if (!bus || bus.incidentType || bus.isFullReturning) return;
+    const cityRoutes = ROUTES.filter(b => b.city === state.currentCity && !b.isFullReturning && !b.incidentType && b.startsInSec === 0);
+    const bus = cityRoutes.find(b => b.id === state.selectedBusId) || cityRoutes[0];
+    if (!bus) {
+      alert("本縣市目前執勤車輛皆已處於事故／滿載調度中，或尚未發車。");
+      return;
+    }
     if (type === "full") {
       bus.load = 100;
     } else {
@@ -1133,8 +1387,9 @@
     renderHome();
   }
 
-  function renderWeatherBanner() {
+  function renderWeatherAndTrafficBanners() {
     const w = WEATHER_PRESETS[state.weatherIdx];
+    const cityObj = CITIES[state.currentCity];
     const liveTag = w.isLive ? "🟢 現實氣象連線中" : "🟡 模擬氣象情境";
     const banner = document.getElementById("weatherBanner");
     if (banner) {
@@ -1142,7 +1397,7 @@
         <div class="weather-main">
           <div style="font-size:32px;">${w.icon}</div>
           <div>
-            <div style="font-size:11px; opacity:0.95; font-weight:700;">高雄市燕巢區・${liveTag}</div>
+            <div style="font-size:11px; opacity:0.95; font-weight:700;">${cityObj.name}（${cityObj.districtLabel}）・${liveTag}</div>
             <div style="display:flex; align-items:baseline; gap:6px; margin-top:2px;">
               <span class="weather-temp">${w.outdoorTemp}°C</span>
               <span style="font-size:13px; font-weight:700;">${w.condition}</span>
@@ -1157,36 +1412,44 @@
         </div>
       `;
     }
+
+    const cityZones = TRAFFIC_ZONES.filter(z => z.city === state.currentCity);
+    const heavyCount = cityZones.filter(z => z.level === 2).length;
+    const slowCount = cityZones.filter(z => z.level === 1).length;
+    const tBanner = document.getElementById("trafficBanner");
+    if (tBanner) {
+      tBanner.innerHTML = `
+        <div style="font-weight:800; color:var(--text);">🚦 ${cityObj.name}即時路況</div>
+        <div class="traffic-dots">
+          <span style="color:#dc2626;">🔴 塞車 ${heavyCount} 段</span>
+          <span style="color:#d97706;">🟡 緩行 ${slowCount} 段</span>
+          <span style="color:#0f766e;">🟢 順暢 ${Math.max(0, cityZones.length - heavyCount - slowCount)} 段</span>
+        </div>
+      `;
+    }
+
     const pill = document.getElementById("mapWeatherPill");
     if (pill) {
-      pill.textContent = `${w.icon} 室外 ${w.outdoorTemp}°C・${w.condition}`;
+      pill.textContent = `${cityObj.name} ${w.icon}${w.outdoorTemp}°C ｜ 🔴塞車${heavyCount} 🟡緩行${slowCount}`;
     }
   }
 
   function renderHome() {
-    renderWeatherBanner();
-    const w = WEATHER_PRESETS[state.weatherIdx];
-    document.getElementById("userLocName").textContent = state.userPos.name;
+    renderWeatherAndTrafficBanners();
+    document.getElementById("areaSearchResultBox").innerHTML = state.areaSearchSummary;
 
-    const query = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-    let listWithTelemetry = ROUTES.map(bus => ({ bus, t: getBusTelemetry(bus) }));
+    const cityRoutes = ROUTES.filter(b => b.city === state.currentCity);
+    let listWithTelemetry = cityRoutes.map(bus => ({ bus, t: getBusTelemetry(bus) }));
 
-    if (state.filterMode === "nearest") {
+    if (state.filterMode === "running") {
+      listWithTelemetry = listWithTelemetry.filter(item => !item.t.isScheduled);
+    } else if (state.filterMode === "scheduled") {
+      listWithTelemetry = listWithTelemetry.filter(item => item.t.isScheduled);
+    } else if (state.filterMode === "nearest") {
       listWithTelemetry.sort((a, b) => a.t.walkMeters - b.t.walkMeters);
       listWithTelemetry = listWithTelemetry.slice(0, 3);
-    } else if (state.filterMode === "soon") {
-      listWithTelemetry = listWithTelemetry.filter(item => item.t.isArrivingSoon || item.bus.collectingCountdown > 0);
-    } else if (state.filterMode === "dispatch") {
-      listWithTelemetry = listWithTelemetry.filter(item => item.bus.incidentType || item.bus.isFullReturning || item.bus.id.includes("接管"));
-    }
-
-    if (query) {
-      listWithTelemetry = listWithTelemetry.filter(({ bus }) =>
-        bus.id.toLowerCase().includes(query) ||
-        bus.name.toLowerCase().includes(query) ||
-        bus.roadNote.toLowerCase().includes(query) ||
-        bus.stops.some(s => s.name.toLowerCase().includes(query))
-      );
+    } else if (state.filterMode === "jam") {
+      listWithTelemetry = listWithTelemetry.filter(item => item.t.tz !== null);
     }
 
     const container = document.getElementById("busListContainer");
@@ -1195,53 +1458,69 @@
       : "";
 
     if (listWithTelemetry.length === 0) {
-      container.innerHTML = bannerHtml + `<div class="card" style="text-align:center; color:var(--muted); font-size:13px;">目前沒有符合篩選條件的班次，請點「全部班次」查看。</div>`;
+      container.innerHTML = bannerHtml + `<div class="card" style="text-align:center; color:var(--muted); font-size:13px;">此篩選條件下目前沒有班次，請點「全部班次」查看。</div>`;
       return;
     }
 
+    const w = WEATHER_PRESETS[state.weatherIdx];
     container.innerHTML = bannerHtml + listWithTelemetry.map(({ bus, t }) => {
       const isSelected = bus.id === state.selectedBusId;
       const loadColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
 
-      let statusBadge = `<span class="badge badge-ok">● 行駛中</span>`;
-      if (bus.incidentType === "fire") statusBadge = `<span class="badge badge-danger">🔥 失火 65°C・已接管</span>`;
+      let statusBadge = `<span class="badge badge-ok">● 行駛順暢</span>`;
+      if (t.isScheduled) statusBadge = `<span class="badge badge-scheduled">⏳ 待發車（${t.departTimeStr} 出發）</span>`;
+      else if (bus.incidentType === "fire") statusBadge = `<span class="badge badge-danger">🔥 失火 65°C・已接管</span>`;
       else if (bus.incidentType === "crash") statusBadge = `<span class="badge badge-danger">💥 發生車禍・已接管</span>`;
       else if (bus.isFullReturning) statusBadge = `<span class="badge badge-danger">🛑 100% 滿載返場</span>`;
       else if (bus.collectingCountdown > 0) statusBadge = `<span class="badge badge-collect">♻️ 到站收運中 (${bus.collectingCountdown}s)</span>`;
       else if (bus.waitingRedLight) statusBadge = `<span class="badge badge-redlight">🚦 紅燈停等</span>`;
+      else if (t.tz && t.tz.level === 2) statusBadge = `<span class="badge badge-heavy-jam">🔴 嚴重塞車 +${t.tz.delayMin}分</span>`;
+      else if (t.tz && t.tz.level === 1) statusBadge = `<span class="badge badge-jam">🟡 車多緩行 +${t.tz.delayMin}分</span>`;
       else if (t.isArrivingSoon) statusBadge = `<span class="badge badge-soon">🔔 即將抵達</span>`;
       else if (bus.id.includes("接管")) statusBadge = `<span class="badge badge-dispatch">➕ 緊急接管車</span>`;
 
       const nearestNote = t.hasPassedNearest
-        ? `<div class="passed-note">⏭️ 最近站「${t.nearestStop.name}」<b>已離站</b>（約 ${t.passedAgoMin} 分前通過）</div>`
-        : `<div class="passed-note">📍 離你最近站：${t.nearestStop.name}（距你約 <b>${t.walkMeters}m</b>）</div>`;
+        ? `<div class="passed-note">⏭️ 離搜尋點最近站「${t.nearestStop.name}」<b>已離站</b>（約 ${t.passedAgoMin} 分前通過）</div>`
+        : `<div class="passed-note">📍 離搜尋點最近站：${t.nearestStop.name}（距約 <b>${t.walkMeters}m</b>・預估 <b>${t.nearestEtaStr}</b> 抵達）</div>`;
 
-      const boxClass = bus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "");
+      const jamNote = t.tz
+        ? `<div style="font-size:11px; color:${t.tz.level === 2 ? "#dc2626" : "#b45309"}; font-weight:700; margin-top:4px;">🚗 目前行經壅塞區：${t.tz.name}（時速約 ${t.tz.speedKmh} km/h）</div>`
+        : "";
+
+      const boxClass = t.isScheduled ? "scheduled" : (bus.collectingCountdown > 0 ? "collecting" : (t.tz ? "jammed" : (t.isArrivingSoon ? "soon" : "")));
 
       return `
         <div class="card bus-card ${isSelected ? "selected" : ""}">
           <div class="card-header">
             <div>
-              <div style="font-size:16px; font-weight:900;">${bus.id} <span style="font-size:12px; font-weight:600; color:var(--muted);">・${bus.stops.length} 站</span></div>
+              <div style="font-size:16px; font-weight:900;">${bus.id} <span style="font-size:12px; font-weight:700; color:var(--primary);">[${bus.areaTag}]</span></div>
               <div style="font-size:12px; font-weight:700; color:var(--text); margin-top:1px;">${bus.name}</div>
-              <div style="font-size:11px; color:#0f766e; margin-top:2px;">🛣️ ${bus.roadNote}</div>
+              <div class="schedule-pill-row">
+                <span class="sched-tag">🕒 表定發車：${t.departTimeStr}</span>
+                <span class="sched-tag">🛣️ 共 ${bus.stops.length} 站</span>
+              </div>
             </div>
             <div>${statusBadge}</div>
           </div>
 
           ${nearestNote}
+          ${jamNote}
 
           <div class="next-stop-box ${boxClass}">
             <div class="next-stop-title">
-              ${bus.collectingCountdown > 0
-                ? `正在停靠收垃圾：${t.nextStop.name}`
-                : (t.isFinished ? `終點站：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）：${t.nextStop.name}`)}
+              ${t.isScheduled
+                ? `首站待發：${bus.stops[0].name}`
+                : (bus.collectingCountdown > 0
+                  ? `正在停靠收垃圾：${t.nextStop.name}`
+                  : (t.isFinished ? `終點站：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）：${t.nextStop.name}`))}
             </div>
             <div class="next-stop-meta">
-              <span>預計時間：<b>${t.etaStr}</b></span>
-              <span>${bus.collectingCountdown > 0
-                ? "停等倒垃圾中（完成增容 +2%~6%）"
-                : (t.isFinished ? "今日清運完成" : `剩 <b>${formatCountdown(t.remainSecToNext)}</b>（約 ${t.remainMetersToNext}m）`)}</span>
+              <span>${t.isScheduled ? `發車時刻：<b>${t.departTimeStr}</b>` : `預計抵達：<b>${t.etaStr}</b>`}</span>
+              <span>${t.isScheduled
+                ? `距離發車倒數 <b>${formatCountdown(t.remainSecToNext)}</b>`
+                : (bus.collectingCountdown > 0
+                  ? "停等倒垃圾中（完成增容 +2%~6%）"
+                  : (t.isFinished ? "今日清運完成" : `剩 <b>${formatCountdown(t.remainSecToNext)}</b>（約 ${t.remainMetersToNext}m）`))}</span>
             </div>
           </div>
 
@@ -1254,7 +1533,7 @@
           </div>
 
           <div class="card-quick-actions">
-            <button class="btn-quick" onclick="selectBusAndOpenDetail('${bus.id}')">🚛 車輛載量與溫控</button>
+            <button class="btn-quick" onclick="selectBusAndOpenDetail('${bus.id}')">🚛 車輛載量與時程</button>
             <button class="btn-quick primary" onclick="selectBusAndOpenMap('${bus.id}')">🗺️ 地圖即時追蹤</button>
           </div>
         </div>
@@ -1263,35 +1542,49 @@
   }
 
   function renderDetail() {
+    const cityRoutes = ROUTES.filter(b => b.city === state.currentCity);
     const pills = document.getElementById("detailBusPills");
     if (pills) {
-      pills.innerHTML = ROUTES.map(b => {
+      pills.innerHTML = cityRoutes.map(b => {
         const active = b.id === state.selectedBusId ? "active" : "";
         return `<button class="pill ${active}" onclick="selectBusAndOpenDetail('${b.id}')">${b.id}</button>`;
       }).join("");
     }
 
-    const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
+    const bus = cityRoutes.find(b => b.id === state.selectedBusId) || cityRoutes[0];
     const t = getBusTelemetry(bus);
     const w = WEATHER_PRESETS[state.weatherIdx];
     const fillColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
-    const totalDelay = bus.delayMin + (state.weatherIdx === 2 ? 1 : 0);
 
-    let alertTag = `<span class="badge badge-ok">✅ 行駛中載量固定・溫控正常</span>`;
-    if (bus.incidentType === "fire") alertTag = `<span class="badge badge-danger">🔥 失火警報 65°C・已派車接管</span>`;
+    let alertTag = `<span class="badge badge-ok">✅ 路況順暢・溫控正常</span>`;
+    if (t.isScheduled) alertTag = `<span class="badge badge-scheduled">⏳ 調度場待發車（${t.departTimeStr} 出發）</span>`;
+    else if (bus.incidentType === "fire") alertTag = `<span class="badge badge-danger">🔥 失火警報 65°C・已派車接管</span>`;
     else if (bus.incidentType === "crash") alertTag = `<span class="badge badge-danger">💥 交通事故停駛・已派車接管</span>`;
     else if (bus.load >= 100) alertTag = `<span class="badge badge-danger">🛑 載量 100% 滿載・已派車接管</span>`;
-    else if (bus.collectingCountdown > 0) alertTag = `<span class="badge badge-collect">♻️ 到站停等倒垃圾中（完成增容）</span>`;
+    else if (bus.collectingCountdown > 0) alertTag = `<span class="badge badge-collect">♻️ 到站停等倒垃圾中</span>`;
     else if (bus.waitingRedLight) alertTag = `<span class="badge badge-redlight">🚦 路口紅燈停等中</span>`;
+    else if (t.tz) alertTag = `<span class="badge ${t.tz.level === 2 ? "badge-heavy-jam" : "badge-jam"}">🚗 ${t.tz.level === 2 ? "嚴重塞車" : "車多緩行"} +${t.tz.delayMin}分</span>`;
+
+    // 產生本班次錯峰站點預估時刻表（前 5 站預覽）
+    const currentProgress = t.isScheduled ? 0 : bus.progress;
+    const stopRows = bus.stops.map((st, idx) => {
+      const segDiff = Math.max(0, idx - currentProgress);
+      const secOffset = (t.isScheduled ? bus.startsInSec : 0) + Math.round(segDiff * 140 + t.totalDelayMin * 60);
+      const stopEta = new Date(Date.now() + secOffset * 1000).toTimeString().slice(0, 5);
+      const isPassed = !t.isScheduled && idx < Math.floor(bus.progress);
+      return `<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #e2e8f0; font-size:12px; color:${isPassed ? "#94a3b8" : "#0f172a"};">
+        <span>${st.name}</span>
+        <b>${isPassed ? "已通過" : stopEta}</b>
+      </div>`;
+    }).join("");
 
     document.getElementById("detailContainer").innerHTML = `
       <div class="card">
         <div class="card-header">
           <div>
-            <div style="font-size:11px; color:var(--muted); font-weight:700;">當前追蹤車輛（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）</div>
+            <div style="font-size:11px; color:var(--muted); font-weight:700;">${CITIES[bus.city].name}・${bus.areaTag}（表定 ${t.departTimeStr} 發車）</div>
             <div style="font-size:20px; font-weight:900;">${bus.id}</div>
             <div style="font-size:12px; color:var(--muted);">${bus.name}</div>
-            <div style="font-size:11px; color:#0f766e; margin-top:2px;">🛣️ ${bus.roadNote}</div>
           </div>
           ${alertTag}
         </div>
@@ -1307,7 +1600,7 @@
             <circle cx="122" cy="84" r="12" fill="#1e293b"/>
             <circle cx="180" cy="84" r="12" fill="#1e293b"/>
           </svg>
-          <div style="font-size:11px; color:var(--muted);">行駛途中載量完全不會增加；僅在到站停等倒垃圾結束時增加 2%~6%</div>
+          <div style="font-size:11px; color:var(--muted);">行駛途中載量固定；僅在到站停等倒垃圾結束時增加 2%~6%</div>
         </div>
 
         <div class="metrics-row">
@@ -1320,34 +1613,23 @@
             <div class="metric-lbl">室外氣溫・${w.condition}</div>
           </div>
           <div class="metric-box">
-            <div class="metric-val">🕒 ${t.etaStr}</div>
-            <div class="metric-lbl">下一站預計抵達時間</div>
+            <div class="metric-val">🕒 ${t.departTimeStr}</div>
+            <div class="metric-lbl">本班次首站發車時間</div>
           </div>
           <div class="metric-box">
-            <div class="metric-val" style="color:${bus.waitingRedLight ? "#dc2626" : "#0f766e"};">
-              ${bus.waitingRedLight ? "🚦 紅燈停等" : (totalDelay > 0 ? `+${totalDelay} 分` : "正常通行")}
+            <div class="metric-val" style="color:${t.tz ? "#dc2626" : "#0f766e"};">
+              ${t.isScheduled ? "調度場待機" : (t.tz ? `${t.tz.speedKmh} km/h` : "42 km/h")}
             </div>
-            <div class="metric-lbl">路口號誌與路況狀態</div>
-          </div>
-        </div>
-
-        <div class="next-stop-box ${bus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "")}" style="margin-top:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; font-weight:700; color:var(--muted);">車輛目前動態進度</span>
-            ${bus.collectingCountdown > 0
-              ? `<span class="badge badge-collect">♻️ 到站倒垃圾中</span>`
-              : (t.isArrivingSoon ? `<span class="badge badge-soon">🔔 即將抵達</span>` : "")}
-          </div>
-          <div class="next-stop-title" style="margin-top:4px;">
-            ${bus.collectingCountdown > 0 ? `目前停靠站：${t.nextStop.name}` : `下一站：${t.nextStop.name}`}
-          </div>
-          <div class="next-stop-meta">
-            <span>剩餘時間：<b>${bus.collectingCountdown > 0 ? `停等收運剩 ${bus.collectingCountdown} 秒` : formatCountdown(t.remainSecToNext)}</b></span>
-            <span>距離該站：<b>約 ${t.remainMetersToNext} 公尺</b></span>
+            <div class="metric-lbl">${t.tz ? `🚗 ${t.tz.name}` : "🟢 路況通行狀態"}</div>
           </div>
         </div>
 
         <button class="btn-primary" onclick="selectBusAndOpenMap('${bus.id}')">🗺️ 切換至真實地圖追蹤此車</button>
+      </div>
+
+      <div class="card">
+        <div style="font-size:13px; font-weight:800; margin-bottom:6px;">📋 本班次各站動態預估時刻表（錯峰到站）</div>
+        ${stopRows}
       </div>
     `;
   }
@@ -1359,7 +1641,8 @@
 
   function initRealMap() {
     if (leafletMap || typeof L === "undefined") return;
-    leafletMap = L.map("realMap", { zoomControl: false }).setView([22.7988, 120.3748], 14);
+    const c = CITIES[state.currentCity];
+    leafletMap = L.map("realMap", { zoomControl: false }).setView(c.center, c.zoom);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "&copy; OpenStreetMap"
@@ -1378,7 +1661,19 @@
     trafficLayerGroup.clearLayers();
     vehicleLayerGroup.clearLayers();
 
-    TRAFFIC_LIGHTS.forEach(tl => {
+    // 1. 繪製當前縣市塞車路況光帶
+    TRAFFIC_ZONES.filter(tz => tz.city === state.currentCity && tz.level > 0).forEach(tz => {
+      const jamColor = tz.level === 2 ? "#ef4444" : "#f59e0b";
+      L.polyline(tz.coords, {
+        color: jamColor,
+        weight: 10,
+        opacity: 0.55,
+        lineCap: "round"
+      }).bindTooltip(`🚗 ${tz.name}（${tz.level === 2 ? "嚴重塞車" : "車多緩行"}・時速 ${tz.speedKmh} km/h）`).addTo(trafficLayerGroup);
+    });
+
+    // 2. 繪製當前縣市紅綠燈號誌
+    TRAFFIC_LIGHTS.filter(tl => tl.city === state.currentCity).forEach(tl => {
       const isRed = isTrafficLightRed(tl, state.tickCount);
       const icon = L.divIcon({
         className: "",
@@ -1392,16 +1687,19 @@
       L.marker([tl.lat, tl.lng], { icon }).bindTooltip(`${tl.name}（${isRed ? "紅燈" : "綠燈"}）`).addTo(trafficLayerGroup);
     });
 
+    // 3. 繪製搜尋／使用者位置標記
     const userIcon = L.divIcon({
       className: "",
-      html: `<div style="background:#2563eb; color:#fff; border:2px solid #fff; border-radius:999px; padding:2px 7px; font-size:10px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍 你的位置</div>`,
+      html: `<div style="background:#2563eb; color:#fff; border:2px solid #fff; border-radius:999px; padding:2px 7px; font-size:10px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍 搜尋位置</div>`,
       iconAnchor: [32, 12]
     });
-    L.marker([state.userPos.lat, state.userPos.lng], { icon: userIcon }).addTo(vehicleLayerGroup);
+    L.marker([state.userPos.lat, state.userPos.lng], { icon: userIcon }).bindTooltip(state.userPos.name).addTo(vehicleLayerGroup);
 
+    // 4. 繪製本縣市垃圾車路線與車輛
+    const cityRoutes = ROUTES.filter(b => b.city === state.currentCity);
     const busesToRender = state.showAllVehicles
-      ? ROUTES
-      : ROUTES.filter(b => b.id === state.selectedBusId);
+      ? cityRoutes
+      : cityRoutes.filter(b => b.id === state.selectedBusId);
 
     busesToRender.forEach(bus => {
       const t = getBusTelemetry(bus);
@@ -1413,7 +1711,7 @@
         const seg = (bus.segmentPaths && bus.segmentPaths[i]) ? bus.segmentPaths[i] : [[bus.stops[i].lat, bus.stops[i].lng], [bus.stops[i + 1].lat, bus.stops[i + 1].lng]];
         passedCoords.push(...seg);
       }
-      if (splitIdx < bus.stops.length - 1) {
+      if (splitIdx < bus.stops.length - 1 && !t.isScheduled) {
         const curSeg = (bus.segmentPaths && bus.segmentPaths[splitIdx]) ? bus.segmentPaths[splitIdx] : [[bus.stops[splitIdx].lat, bus.stops[splitIdx].lng], [bus.stops[splitIdx + 1].lat, bus.stops[splitIdx + 1].lng]];
         const cutIdx = Math.floor(t.frac * (curSeg.length - 1));
         passedCoords.push(...curSeg.slice(0, cutIdx + 1), [t.curLat, t.curLng]);
@@ -1439,7 +1737,7 @@
       if (!state.showAllVehicles || isMain) {
         bus.stops.forEach((st, idx) => {
           const isNext = idx === t.nextStopIdx && !t.isFinished;
-          const isPassed = idx <= splitIdx;
+          const isPassed = !t.isScheduled && idx <= splitIdx;
           const fillColor = isNext ? (bus.collectingCountdown > 0 ? "#16a34a" : "#ea580c") : (isPassed ? "#94a3b8" : "#ffffff");
           L.circleMarker([st.lat, st.lng], {
             radius: isNext ? 7 : 4.5,
@@ -1451,12 +1749,17 @@
         });
       }
 
-      const truckBg = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.collectingCountdown > 0 ? "#16a34a" : bus.color);
-      const statusTxt = bus.incidentType === "fire" ? "🔥失火" : (bus.incidentType === "crash" ? "💥車禍" : (bus.collectingCountdown > 0 ? "♻️收運中" : (bus.waitingRedLight ? "🚦紅燈" : `${bus.load}%`)));
+      const truckBg = t.isScheduled
+        ? "#4f46e5"
+        : ((bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.collectingCountdown > 0 ? "#16a34a" : (t.tz ? "#d97706" : bus.color)));
+      const statusTxt = t.isScheduled
+        ? `⏳${t.departTimeStr}發車`
+        : (bus.incidentType === "fire" ? "🔥失火" : (bus.incidentType === "crash" ? "💥車禍" : (bus.collectingCountdown > 0 ? "♻️收運中" : (bus.waitingRedLight ? "🚦紅燈" : (t.tz ? "🚗塞車" : `${bus.load}%`)))));
+
       const truckIcon = L.divIcon({
         className: "",
         html: `<div style="background:${truckBg}; color:#fff; border:2px solid #fff; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; white-space:nowrap; box-shadow:0 3px 8px rgba(0,0,0,0.35);">🚛 ${bus.id} ${statusTxt}</div>`,
-        iconAnchor: [48, 14]
+        iconAnchor: [52, 14]
       });
       const marker = L.marker([t.curLat, t.curLng], { icon: truckIcon }).addTo(vehicleLayerGroup);
       marker.on("click", () => selectBusOnMap(bus.id));
@@ -1464,22 +1767,23 @@
   }
 
   function renderMapPage() {
-    renderWeatherBanner();
+    renderWeatherAndTrafficBanners();
+    const cityRoutes = ROUTES.filter(b => b.city === state.currentCity);
     const pills = document.getElementById("mapBusPills");
-    pills.innerHTML = ROUTES.map(bus => {
+    pills.innerHTML = cityRoutes.map(bus => {
       const t = getBusTelemetry(bus);
       const active = bus.id === state.selectedBusId ? "active" : "";
-      const tag = bus.incidentType ? "🚨" : (bus.collectingCountdown > 0 ? "♻️" : (bus.waitingRedLight ? "🚦" : (t.isArrivingSoon ? "🔔" : "")));
+      const tag = t.isScheduled ? "⏳" : (bus.incidentType ? "🚨" : (bus.collectingCountdown > 0 ? "♻️" : (bus.waitingRedLight ? "🚦" : (t.tz ? "🚗" : ""))));
       return `<button class="pill ${active}" onclick="selectBusOnMap('${bus.id}')">${bus.id} ${tag}</button>`;
     }).join("");
 
-    const selectedBus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
+    const selectedBus = cityRoutes.find(b => b.id === state.selectedBusId) || cityRoutes[0];
     const w = WEATHER_PRESETS[state.weatherIdx];
     const loadColor = (selectedBus.load >= 100 || selectedBus.incidentType) ? "#dc2626" : (selectedBus.load >= 85 ? "#f59e0b" : "#0f766e");
 
     document.getElementById("mapModeLabel").textContent = state.showAllVehicles
-      ? `全區 ${ROUTES.length} 輛清運車（共 ${ROUTES.reduce((a, b) => a + b.stops.length, 0)} 站總覽）`
-      : `${selectedBus.id} 沿真實道路軌跡（${selectedBus.stops.length} 站）`;
+      ? `${CITIES[state.currentCity].name}全部 ${cityRoutes.length} 條路線總覽`
+      : `${selectedBus.id}（${selectedBus.areaTag}・${selectedBus.stops.length} 站）`;
     document.getElementById("btnAllVehicles").style.background = state.showAllVehicles ? "#ccfbf1" : "rgba(255,255,255,0.96)";
 
     if (leafletMap) {
@@ -1491,38 +1795,45 @@
     const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${t.curLat.toFixed(5)},${t.curLng.toFixed(5)}`;
     const appleMapsUrl = `https://maps.apple.com/?ll=${t.curLat.toFixed(5)},${t.curLng.toFixed(5)}&q=${encodeURIComponent(selectedBus.id + " 智慧垃圾車")}`;
 
-    let statusPill = `<span class="badge badge-ok">沿道路行駛中</span>`;
-    if (selectedBus.incidentType === "fire") statusPill = `<span class="badge badge-danger">🔥 失火停駛・已派車接管</span>`;
+    let statusPill = `<span class="badge badge-ok">沿道路順暢行駛</span>`;
+    if (t.isScheduled) statusPill = `<span class="badge badge-scheduled">⏳ 待發車（${t.departTimeStr} 出發）</span>`;
+    else if (selectedBus.incidentType === "fire") statusPill = `<span class="badge badge-danger">🔥 失火停駛・已派車接管</span>`;
     else if (selectedBus.incidentType === "crash") statusPill = `<span class="badge badge-danger">💥 車禍停駛・已派車接管</span>`;
     else if (selectedBus.collectingCountdown > 0) statusPill = `<span class="badge badge-collect">♻️ 到站收垃圾（${selectedBus.collectingCountdown}s 後增容）</span>`;
     else if (selectedBus.waitingRedLight) statusPill = `<span class="badge badge-redlight">🚦 紅燈停等中</span>`;
-    else if (t.isArrivingSoon) statusPill = `<span class="badge badge-soon">🔔 即將抵達</span>`;
+    else if (t.tz) statusPill = `<span class="badge ${t.tz.level === 2 ? "badge-heavy-jam" : "badge-jam"}">🚗 ${t.tz.level === 2 ? "嚴重塞車" : "車多緩行"} +${t.tz.delayMin}分</span>`;
 
     document.getElementById("mapInfoCard").innerHTML = `
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
             <span style="font-size:15px; font-weight:900;">${selectedBus.id}</span>
-            <span style="font-size:12px; color:var(--muted); margin-left:6px;">車斗 ${selectedBus.temp.toFixed(1)}°C（室外 ${w.outdoorTemp}°C）</span>
+            <span style="font-size:12px; color:var(--muted); margin-left:6px;">發車 ${t.departTimeStr}・車斗 ${selectedBus.temp.toFixed(1)}°C（室外 ${w.outdoorTemp}°C）</span>
           </div>
           ${statusPill}
         </div>
 
+        ${t.tz ? `<div style="font-size:11px; color:#b45309; font-weight:700; margin-bottom:6px;">⚠️ 壅塞路段：${t.tz.name}（目前平均時速 ${t.tz.speedKmh} km/h）</div>` : ""}
+
         <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted);">
           <span>目前車斗載量：<b>${selectedBus.load}%</b>（僅到站增加）</span>
-          <span style="color:var(--primary); font-weight:700; cursor:pointer;" onclick="selectBusAndOpenDetail('${selectedBus.id}')">展開車斗剖面圖 ＞</span>
+          <span style="color:var(--primary); font-weight:700; cursor:pointer;" onclick="selectBusAndOpenDetail('${selectedBus.id}')">展開時刻表與車斗圖 ＞</span>
         </div>
         <div class="load-bar-bg">
           <div class="load-bar-fill" style="width:${Math.min(selectedBus.load, 100)}%; background:${loadColor};"></div>
         </div>
 
-        <div class="next-stop-box ${selectedBus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "")}">
+        <div class="next-stop-box ${t.isScheduled ? "scheduled" : (selectedBus.collectingCountdown > 0 ? "collecting" : (t.tz ? "jammed" : ""))}">
           <div class="next-stop-title">
-            ${selectedBus.collectingCountdown > 0 ? `停靠收垃圾：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${selectedBus.stops.length} 站）：${t.nextStop.name}`}
+            ${t.isScheduled
+              ? `首站待發：${selectedBus.stops[0].name}`
+              : (selectedBus.collectingCountdown > 0 ? `停靠收垃圾：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${selectedBus.stops.length} 站）：${t.nextStop.name}`)}
           </div>
           <div class="next-stop-meta">
-            <span>預計時間：<b>${t.etaStr}</b></span>
-            <span>剩餘：<b>${selectedBus.collectingCountdown > 0 ? `收運中 ${selectedBus.collectingCountdown} 秒` : formatCountdown(t.remainSecToNext)}</b>（${t.remainMetersToNext}m）</span>
+            <span>${t.isScheduled ? `表定發車：<b>${t.departTimeStr}</b>` : `預計抵達：<b>${t.etaStr}</b>`}</span>
+            <span>${t.isScheduled
+              ? `距離發車倒數 <b>${formatCountdown(t.remainSecToNext)}</b>`
+              : (selectedBus.collectingCountdown > 0 ? `收運中 ${selectedBus.collectingCountdown} 秒` : `剩 <b>${formatCountdown(t.remainSecToNext)}</b>（${t.remainMetersToNext}m）`)}</span>
           </div>
         </div>
 
@@ -1571,9 +1882,10 @@
     state.showAllVehicles = !state.showAllVehicles;
     renderMapPage();
     if (leafletMap) {
+      const cityRoutes = ROUTES.filter(r => r.city === state.currentCity);
       if (state.showAllVehicles) {
         const allPts = [];
-        ROUTES.forEach(r => r.stops.forEach(s => allPts.push([s.lat, s.lng])));
+        cityRoutes.forEach(r => r.stops.forEach(s => allPts.push([s.lat, s.lng])));
         if (allPts.length > 0) {
           leafletMap.fitBounds(L.latLngBounds(allPts), { padding: [24, 24] });
         }
@@ -1585,35 +1897,38 @@
 
   function centerSelectedBus() {
     if (!leafletMap) return;
-    const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
+    const cityRoutes = ROUTES.filter(r => r.city === state.currentCity);
+    const bus = cityRoutes.find(b => b.id === state.selectedBusId) || cityRoutes[0];
     const t = getBusTelemetry(bus);
     leafletMap.setView([t.curLat, t.curLng], 15);
   }
 
-  function cycleUserLocation() {
-    state.userLocIdx = (state.userLocIdx + 1) % USER_PRESETS.length;
-    state.userPos = { ...USER_PRESETS[state.userLocIdx] };
-    fetchRealWeather();
-    renderAll();
-  }
-
   function useRealGPS() {
     if (!navigator.geolocation) {
-      alert("此裝置瀏覽器不支援 GPS 定位，已維持目前模擬路口。");
+      alert("此裝置瀏覽器不支援 GPS 定位，請直接輸入大概位置查詢。");
       return;
     }
     navigator.geolocation.getCurrentPosition(
       pos => {
-        state.userPos = {
-          name: `手機即時 GPS (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-        fetchRealWeather();
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        // 判斷離哪個縣市最近
+        let closestCity = "kaohsiung";
+        let minCityDist = Infinity;
+        Object.keys(CITIES).forEach(k => {
+          const d = calcGeoMeters(lat, lng, CITIES[k].center[0], CITIES[k].center[1]);
+          if (d < minCityDist) {
+            minCityDist = d;
+            closestCity = k;
+          }
+        });
+        state.userPos = { name: `手機即時 GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng };
+        switchCity(closestCity, true);
+        state.areaSearchSummary = `<div style="background:#ecfdf5; border:1px solid #6ee7b7; padding:8px 10px; border-radius:9px; color:#065f46; font-weight:700;">📍 已定位至 ${state.userPos.name}，並自動切換至${CITIES[closestCity].name}清運網。</div>`;
         renderAll();
       },
       () => {
-        alert("未取得定位權限，已繼續使用燕巢真實路口模擬位置。");
+        alert("未取得定位權限，可直接在上方搜尋欄輸入區名或地標（如：逢甲、信義、燕巢）。");
       }
     );
   }
@@ -1650,6 +1965,26 @@
     renderAll();
   }
 
+  function toggleRushHour() {
+    state.rushHourMode = !state.rushHourMode;
+    const btn = document.getElementById("btnRushHour");
+    btn.classList.toggle("warn", state.rushHourMode);
+    btn.textContent = state.rushHourMode ? "🚗 尖峰塞車潮：開啟中（點此解除）" : "🚗 模擬尖峰塞車潮";
+
+    TRAFFIC_ZONES.forEach((tz, idx) => {
+      if (state.rushHourMode) {
+        tz.level = idx % 2 === 0 ? 2 : 1;
+        tz.speedKmh = tz.level === 2 ? 14 : 22;
+        tz.delayMin = tz.level === 2 ? 6 : 3;
+      } else {
+        tz.level = idx % 3 === 0 ? 2 : 1;
+        tz.speedKmh = tz.level === 2 ? 15 : 25;
+        tz.delayMin = tz.level === 2 ? 5 : 2;
+      }
+    });
+    renderAll();
+  }
+
   function renderAll() {
     if (state.tab === "home") renderHome();
     if (state.tab === "detail") renderDetail();
@@ -1661,16 +1996,38 @@
       state.tickCount += 1;
       const w = WEATHER_PRESETS[state.weatherIdx];
 
+      if (!state.rushHourMode && state.tickCount % 15 === 0) {
+        const pick = TRAFFIC_ZONES[Math.floor(Math.random() * TRAFFIC_ZONES.length)];
+        const nextLvl = state.weatherIdx === 2 ? (Math.random() < 0.6 ? 2 : 1) : Math.floor(Math.random() * 3);
+        pick.level = nextLvl;
+        pick.speedKmh = nextLvl === 2 ? 15 : (nextLvl === 1 ? 25 : 42);
+        pick.delayMin = nextLvl === 2 ? 5 : (nextLvl === 1 ? 2 : 0);
+      }
+
       for (let i = ROUTES.length - 1; i >= 0; i--) {
         const bus = ROUTES[i];
 
+        // 尚未發車的班次：倒數發車時間，倒數歸零才正式發車上路
+        if (bus.startsInSec > 0) {
+          bus.startsInSec = Math.max(0, bus.startsInSec - 1 * state.speedMultiplier);
+          if (bus.startsInSec === 0) {
+            bus.departOffsetMin = 0;
+            bus.load = Math.floor(Math.random() * 8) + 4;
+          }
+          continue;
+        }
+
         if (bus.isFullReturning || bus.incidentType) {
           bus.returnCountdown -= 1;
-          if (bus.returnCountdown <= 0 && ROUTES.length > 1) {
-            if (state.selectedBusId === bus.id) {
-              state.selectedBusId = ROUTES[0].id === bus.id ? ROUTES[1].id : ROUTES[0].id;
+          if (bus.returnCountdown <= 0) {
+            const sameCityLeft = ROUTES.filter(r => r.city === bus.city).length;
+            if (sameCityLeft > 1) {
+              if (state.selectedBusId === bus.id) {
+                const nextBus = ROUTES.find(r => r.city === bus.city && r.id !== bus.id);
+                if (nextBus) state.selectedBusId = nextBus.id;
+              }
+              ROUTES.splice(i, 1);
             }
-            ROUTES.splice(i, 1);
           }
           continue;
         }
@@ -1699,7 +2056,7 @@
           if (bus.collectingCountdown === 0) {
             const addedLoad = Math.floor(Math.random() * 5) + 2;
             bus.load = Math.min(100, bus.load + addedLoad);
-            if (bus.load >= 100 && ROUTES.length < 20) {
+            if (bus.load >= 100 && ROUTES.length < 24) {
               dispatchReplacementVehicle(bus, "full");
               break;
             }
@@ -1709,7 +2066,7 @@
 
         const t = getBusTelemetry(bus);
         const nearRedLight = TRAFFIC_LIGHTS.some(tl =>
-          isTrafficLightRed(tl, state.tickCount) && calcGeoMeters(t.curLat, t.curLng, tl.lat, tl.lng) < 95
+          tl.city === bus.city && isTrafficLightRed(tl, state.tickCount) && calcGeoMeters(t.curLat, t.curLng, tl.lat, tl.lng) < 95
         );
         if (nearRedLight) {
           bus.waitingRedLight = true;
@@ -1720,8 +2077,10 @@
 
         const maxIdx = bus.stops.length - 1;
         const weatherSpeedFactor = state.weatherIdx === 2 ? 0.85 : 1;
+        const jamSpeedFactor = t.tz ? (t.tz.level === 2 ? 0.30 : 0.65) : 1.0;
+
         const prevFloor = Math.floor(bus.progress);
-        bus.progress = Math.min(maxIdx, bus.progress + bus.speedPerSec * state.speedMultiplier * weatherSpeedFactor);
+        bus.progress = Math.min(maxIdx, bus.progress + bus.speedPerSec * state.speedMultiplier * weatherSpeedFactor * jamSpeedFactor);
 
         const curFloor = Math.floor(bus.progress);
         if (curFloor > prevFloor && curFloor > 0 && curFloor !== bus.lastCollectedStopIdx) {
@@ -1741,7 +2100,7 @@
   }, 1000);
 
   fetchRealWeather();
-  snapAllRoutesToRoads();
+  snapCityRoutesToRoads("kaohsiung");
   renderAll();
 </script>
 </body>
