@@ -34,7 +34,7 @@
     }
     .app-shell {
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       background: var(--bg);
       min-height: 100vh;
       display: flex;
@@ -43,7 +43,7 @@
       box-shadow: 0 0 30px rgba(0,0,0,0.15);
       transition: max-width 0.25s ease;
     }
-    .app-shell.tablet-wide { max-width: 900px; }
+    .app-shell.tablet-wide { max-width: 960px; }
 
     .topbar {
       background: linear-gradient(135deg, var(--primary-dark), var(--primary));
@@ -56,17 +56,17 @@
       top: 0;
       z-index: 1000;
     }
-    .topbar-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .topbar-sub { font-size: 11px; opacity: 0.85; }
+    .topbar-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+    .topbar-sub { font-size: 11px; opacity: 0.88; }
     .topbar-actions { display: flex; gap: 6px; }
     .btn-top {
       background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.3);
+      border: 1px solid rgba(255,255,255,0.35);
       color: #fff;
-      padding: 6px 10px;
+      padding: 7px 11px;
       border-radius: 999px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
     }
     .btn-top.active { background: #f59e0b; border-color: #f59e0b; color: #1e293b; }
@@ -81,18 +81,18 @@
       z-index: 999;
     }
     .demo-drawer.open { display: block; }
+    .demo-group-lbl { font-size: 11px; color: #94a3b8; margin: 8px 0 4px; font-weight: 700; }
     .demo-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 8px;
+      gap: 7px;
     }
     .btn-demo {
       background: #334155;
       color: #fff;
       border: 1px solid #475569;
-      padding: 8px 10px;
-      border-radius: 8px;
+      padding: 9px 10px;
+      border-radius: 9px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -101,7 +101,7 @@
     .btn-demo.on { background: #0f766e; border-color: #2dd4bf; }
     .btn-demo.warn { background: #991b1b; border-color: #f87171; }
 
-    .content { flex: 1; padding: 14px; padding-bottom: 78px; overflow-y: auto; }
+    .content { flex: 1; padding: 14px; padding-bottom: 80px; overflow-y: auto; }
     .page { display: none; }
     .page.active { display: block; }
 
@@ -116,7 +116,8 @@
     .card-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      gap: 8px;
       margin-bottom: 8px;
     }
 
@@ -133,16 +134,53 @@
     }
     .weather-main { display: flex; align-items: center; gap: 10px; }
     .weather-temp { font-size: 24px; font-weight: 900; line-height: 1; }
-    .weather-meta { font-size: 11px; opacity: 0.92; text-align: right; line-height: 1.45; }
+    .weather-meta { font-size: 11px; opacity: 0.94; text-align: right; line-height: 1.45; }
+
+    /* 快速搜尋與篩選列 */
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .filter-chip {
+      flex-shrink: 0;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .search-input {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      margin-bottom: 10px;
+      background: #fff;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--primary); }
 
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 9px;
+      padding: 4px 9px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
+      white-space: nowrap;
     }
     .badge-ok { background: var(--primary-light); color: var(--primary-dark); }
     .badge-collect { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
@@ -150,7 +188,6 @@
     .badge-soon { background: #ffedd5; color: #c2410c; animation: pulse 1.2s infinite; }
     .badge-passed { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .badge-danger { background: var(--danger-light); color: var(--danger); animation: pulse 1s infinite; }
-    .badge-delay { background: var(--accent-light); color: #b45309; }
     .badge-dispatch { background: #dbeafe; color: #1d4ed8; }
 
     @keyframes pulse {
@@ -169,18 +206,14 @@
       background: var(--primary-light);
       color: var(--primary-dark);
       border: none;
-      padding: 6px 10px;
-      border-radius: 8px;
+      padding: 7px 11px;
+      border-radius: 9px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
     }
 
-    .bus-card {
-      cursor: pointer;
-      transition: transform 0.15s ease, border-color 0.15s ease;
-    }
-    .bus-card:active { transform: scale(0.99); }
+    .bus-card { transition: border-color 0.15s ease; }
     .bus-card.selected { border: 2px solid var(--primary); }
     .next-stop-box {
       background: #f8fafc;
@@ -195,11 +228,50 @@
     .next-stop-meta { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
     .passed-note {
       font-size: 11px;
-      color: #64748b;
-      margin-top: 6px;
+      color: #475569;
+      margin-top: 4px;
       display: flex;
       align-items: center;
       gap: 4px;
+    }
+
+    /* 載量迷你進度條 */
+    .load-bar-bg {
+      width: 100%;
+      height: 7px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .load-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    /* 卡片底部一鍵直達雙按鈕 */
+    .card-quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-quick {
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      text-align: center;
+    }
+    .btn-quick.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
     }
 
     .metrics-row {
@@ -261,7 +333,7 @@
     .map-wrap {
       position: relative;
       width: 100%;
-      height: 370px;
+      height: 360px;
       background: #e2e8f0;
       border-radius: 14px;
       overflow: hidden;
@@ -278,12 +350,11 @@
       z-index: 500;
     }
     .map-ctrl-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+      padding: 7px 10px;
+      border-radius: 9px;
       border: 1px solid #cbd5e1;
-      background: rgba(255,255,255,0.95);
-      font-size: 15px;
+      background: rgba(255,255,255,0.96);
+      font-size: 12px;
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(0,0,0,0.18);
@@ -337,7 +408,7 @@
       position: fixed;
       bottom: 0;
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       background: #fff;
       border-top: 1px solid var(--border);
       display: grid;
@@ -345,7 +416,7 @@
       padding: 8px 0;
       z-index: 1000;
     }
-    .app-shell.tablet-wide .bottom-nav { max-width: 900px; }
+    .app-shell.tablet-wide .bottom-nav { max-width: 960px; }
     .nav-item {
       border: none;
       background: none;
@@ -367,23 +438,30 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">🚛 智慧垃圾清理系統</div>
-      <div class="topbar-sub">v7.0｜沿真實道路軌跡・8 路線 120 站・即時氣象</div>
+      <div class="topbar-sub">v8.0 直覺版｜一鍵地圖追蹤・智慧篩選・真實路網</div>
     </div>
     <div class="topbar-actions">
-      <button class="btn-top" id="btnLayout" onclick="toggleLayout()">平板寬版</button>
-      <button class="btn-top" id="btnDemoToggle" onclick="toggleDemo()">模擬控制</button>
+      <button class="btn-top" id="btnLayout" onclick="toggleLayout()">寬版檢視</button>
+      <button class="btn-top" id="btnDemoToggle" onclick="toggleDemo()">🎛️ 演示控制</button>
     </div>
   </div>
 
   <div class="demo-drawer" id="demoDrawer">
-    <div style="font-weight:700; color:#5eead4;">🎛️ 簡報演示與模擬器控制（即時生效）</div>
+    <div class="demo-group-lbl">⏱️ 行車模擬節奏</div>
     <div class="demo-grid">
       <button class="btn-demo on" id="btnRun" onclick="toggleRunning()">⏸️ 暫停／繼續行駛</button>
       <button class="btn-demo" id="btnSpeed" onclick="toggleSpeed()">⚡ 速度：1x（點此切換 4x）</button>
+    </div>
+    <div class="demo-group-lbl">🌦️ 天候與路口號誌</div>
+    <div class="demo-grid">
       <button class="btn-demo" id="btnWeather" onclick="cycleWeather()">🌦️ 切換天氣（即時／高溫／雷雨）</button>
       <button class="btn-demo" id="btnToggleSignals" onclick="forceAllRedLights()">🚦 切換路口紅綠燈號誌</button>
-      <button class="btn-demo" id="btnFire" onclick="triggerIncident('fire')">🔥 示範：車斗失火（0.0002% 機率）</button>
-      <button class="btn-demo" id="btnCrash" onclick="triggerIncident('crash')">💥 示範：交通事故（0.00001% 機率）</button>
+    </div>
+    <div class="demo-group-lbl">🚨 突發事件與自動加派接管演示</div>
+    <div class="demo-grid">
+      <button class="btn-demo" id="btnFire" onclick="triggerIncident('fire')">🔥 示範：失火接管（0.0002%）</button>
+      <button class="btn-demo" id="btnCrash" onclick="triggerIncident('crash')">💥 示範：車禍接管（0.00001%）</button>
+      <button class="btn-demo" id="btnFullDemo" onclick="triggerIncident('full')" style="grid-column: span 2;">📦 示範：載量 100% 滿載・自動加派新車重跑路線</button>
     </div>
   </div>
 
@@ -391,26 +469,33 @@
     <div class="page active" id="page-home">
       <div class="weather-strip" id="weatherBanner"></div>
 
-      <div class="card">
+      <div class="card" style="padding:11px 14px;">
         <div class="loc-bar">
           <div>
-            <div style="font-size:11px; color:var(--muted); font-weight:700;">📍 目前偵測所在真實道路區域</div>
-            <div style="font-size:15px; font-weight:800; margin-top:2px;" id="userLocName">燕巢區深水路一段（高科大燕巢校區）</div>
+            <div style="font-size:11px; color:var(--muted); font-weight:700;">📍 目前所在位置（自動推薦最近清運車）</div>
+            <div style="font-size:14px; font-weight:800; margin-top:2px;" id="userLocName">燕巢區深水路一段（高科大燕巢校區）</div>
           </div>
           <div style="display:flex; gap:6px;">
-            <button class="btn-sm" onclick="cycleUserLocation()">切換模擬路口</button>
+            <button class="btn-sm" onclick="cycleUserLocation()">換路口</button>
             <button class="btn-sm" onclick="useRealGPS()">手機 GPS</button>
           </div>
         </div>
       </div>
 
-      <div style="font-size:13px; font-weight:800; color:var(--muted); margin: 6px 2px 8px;" id="fleetSummary">
-        執勤班次（沿真實道路彎曲軌跡行駛）：
+      <!-- 直覺篩選與搜尋 -->
+      <div class="filter-row" id="filterRow">
+        <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部班次</button>
+        <button class="filter-chip" data-filter="nearest" onclick="setFilter('nearest')">📍 離我最近</button>
+        <button class="filter-chip" data-filter="soon" onclick="setFilter('soon')">🔔 即將到站／收運中</button>
+        <button class="filter-chip" data-filter="dispatch" onclick="setFilter('dispatch')">🚨 異常與接管</button>
       </div>
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 輸入車號或路名快速篩選（例：深水路、樹德、大社、KEA）..." oninput="renderHome()" />
+
       <div id="busListContainer"></div>
     </div>
 
     <div class="page" id="page-detail">
+      <div class="bus-pills" id="detailBusPills"></div>
       <div id="detailContainer"></div>
     </div>
 
@@ -418,11 +503,11 @@
       <div class="bus-pills" id="mapBusPills"></div>
 
       <div class="map-wrap">
-        <div class="map-mode-badge" id="mapModeLabel">沿真實道路轉彎軌跡（OpenStreetMap）</div>
+        <div class="map-mode-badge" id="mapModeLabel">沿真實道路軌跡（OpenStreetMap）</div>
         <div class="map-weather-pill" id="mapWeatherPill">☀️ 載入現實氣象中...</div>
         <div class="map-controls">
-          <button class="map-ctrl-btn" onclick="centerSelectedBus()" title="置中追蹤車輛">🎯</button>
-          <button class="map-ctrl-btn" id="btnAllVehicles" onclick="toggleAllVehicles()" title="切換全區總覽">🌐</button>
+          <button class="map-ctrl-btn" onclick="centerSelectedBus()" title="對焦目前車輛">🎯 對焦車輛</button>
+          <button class="map-ctrl-btn" id="btnAllVehicles" onclick="toggleAllVehicles()" title="全區 8 路線總覽">🌐 全區總覽</button>
         </div>
         <div id="realMap"></div>
       </div>
@@ -434,15 +519,15 @@
   <div class="bottom-nav">
     <button class="nav-item active" id="nav-home" onclick="switchTab('home')">
       <span class="nav-icon">🏠</span>
-      <span>主畫面</span>
-    </button>
-    <button class="nav-item" id="nav-detail" onclick="switchTab('detail')">
-      <span class="nav-icon">🚛</span>
-      <span>當前車輛資訊</span>
+      <span>班次總覽</span>
     </button>
     <button class="nav-item" id="nav-map" onclick="switchTab('map')">
       <span class="nav-icon">🗺️</span>
       <span>真實地圖</span>
+    </button>
+    <button class="nav-item" id="nav-detail" onclick="switchTab('detail')">
+      <span class="nav-icon">🚛</span>
+      <span>車輛詳情</span>
     </button>
   </div>
 </div>
@@ -481,7 +566,6 @@
     }
   ];
 
-  // 10 處主要真實路口紅綠燈號誌
   const TRAFFIC_LIGHTS = [
     { id: "TL-1", name: "中民路・中華路口", lat: 22.7948, lng: 120.3665, offset: 0 },
     { id: "TL-2", name: "深水路・橫山路口", lat: 22.8018, lng: 120.3805, offset: 5 },
@@ -503,7 +587,6 @@
     return { name, lat, lng };
   }
 
-  // 8 條真實道路清運路線，每條 15 個真實站點（共 120 站），並支援 OSRM 真實道路幾何貼合
   const ROUTES = [
     {
       id: "KEA-8821",
@@ -826,6 +909,7 @@
     userLocIdx: 0,
     userPos: { ...USER_PRESETS[0] },
     weatherIdx: 0,
+    filterMode: "all",
     running: true,
     speedMultiplier: 1,
     showAllVehicles: false,
@@ -842,7 +926,6 @@
     return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   }
 
-  // 沿著真實道路多段線內插精準位置（取代直線切過建築物）
   function interpolateAlongSegment(bus, segIdx, frac) {
     const sA = bus.stops[segIdx];
     const sB = bus.stops[segIdx + 1];
@@ -864,7 +947,6 @@
     };
   }
 
-  // 透過 OSRM 取得真實街道轉折座標，讓路線與車輛完全沿著地圖馬路走
   async function snapRouteToRealRoads(bus) {
     try {
       const coordsParam = bus.stops.map(s => `${s.lng},${s.lat}`).join(";");
@@ -894,9 +976,7 @@
       bus.segmentPaths = segPaths;
       bus.roadSnapped = true;
       state.roadSnapCount += 1;
-    } catch (e) {
-      // 網路受限時自動維持站點連線備援
-    }
+    } catch (e) {}
   }
 
   async function snapAllRoutesToRoads() {
@@ -1028,17 +1108,29 @@
     } else if (reason === "crash") {
       state.systemAlert = `💥 緊急警報（0.00001% 車禍事件）：${problemBus.id} 發生車禍！已自動加派 ${newId} 接管後續清運任務。`;
     } else {
-      state.systemAlert = `📦 滿載調度：${problemBus.id} 到站收運後載量達 100%！已加派 ${newId} 從起點接管路線。`;
+      state.systemAlert = `📦 滿載調度：${problemBus.id} 載量達 100%！已加派 ${newId} 從起點重跑接管路線。`;
     }
   }
 
   function triggerIncident(type) {
     const bus = ROUTES.find(b => b.id === state.selectedBusId && !b.isFullReturning && !b.incidentType) || ROUTES[0];
     if (!bus || bus.incidentType || bus.isFullReturning) return;
-    bus.incidentType = type;
-    if (type === "fire") bus.temp = 65.0;
+    if (type === "full") {
+      bus.load = 100;
+    } else {
+      bus.incidentType = type;
+      if (type === "fire") bus.temp = 65.0;
+    }
     dispatchReplacementVehicle(bus, type);
     renderAll();
+  }
+
+  function setFilter(mode) {
+    state.filterMode = mode;
+    document.querySelectorAll(".filter-chip").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.filter === mode);
+    });
+    renderHome();
   }
 
   function renderWeatherBanner() {
@@ -1075,46 +1167,66 @@
     renderWeatherBanner();
     const w = WEATHER_PRESETS[state.weatherIdx];
     document.getElementById("userLocName").textContent = state.userPos.name;
-    const totalStops = ROUTES.reduce((acc, r) => acc + r.stops.length, 0);
-    const snapText = state.roadSnapCount > 0 ? `已貼合真實道路網（${state.roadSnapCount}/${ROUTES.length} 條）` : "載入真實道路轉彎軌跡中...";
-    document.getElementById("fleetSummary").textContent =
-      `線上 ${ROUTES.length} 輛清運車・共 ${totalStops} 站（${snapText}）：`;
+
+    const query = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+    let listWithTelemetry = ROUTES.map(bus => ({ bus, t: getBusTelemetry(bus) }));
+
+    if (state.filterMode === "nearest") {
+      listWithTelemetry.sort((a, b) => a.t.walkMeters - b.t.walkMeters);
+      listWithTelemetry = listWithTelemetry.slice(0, 3);
+    } else if (state.filterMode === "soon") {
+      listWithTelemetry = listWithTelemetry.filter(item => item.t.isArrivingSoon || item.bus.collectingCountdown > 0);
+    } else if (state.filterMode === "dispatch") {
+      listWithTelemetry = listWithTelemetry.filter(item => item.bus.incidentType || item.bus.isFullReturning || item.bus.id.includes("接管"));
+    }
+
+    if (query) {
+      listWithTelemetry = listWithTelemetry.filter(({ bus }) =>
+        bus.id.toLowerCase().includes(query) ||
+        bus.name.toLowerCase().includes(query) ||
+        bus.roadNote.toLowerCase().includes(query) ||
+        bus.stops.some(s => s.name.toLowerCase().includes(query))
+      );
+    }
 
     const container = document.getElementById("busListContainer");
     const bannerHtml = state.systemAlert
       ? `<div class="card" style="background:#fef2f2; border-color:#fca5a5; font-size:12px; font-weight:700; color:#991b1b;">${state.systemAlert}</div>`
       : "";
 
-    container.innerHTML = bannerHtml + ROUTES.map(bus => {
-      const t = getBusTelemetry(bus);
-      const isSelected = bus.id === state.selectedBusId;
+    if (listWithTelemetry.length === 0) {
+      container.innerHTML = bannerHtml + `<div class="card" style="text-align:center; color:var(--muted); font-size:13px;">目前沒有符合篩選條件的班次，請點「全部班次」查看。</div>`;
+      return;
+    }
 
-      let statusBadge = `<span class="badge badge-ok">● 沿道路行駛中（${bus.stops.length} 站）</span>`;
-      if (bus.incidentType === "fire") statusBadge = `<span class="badge badge-danger">🔥 失火 65°C・已加派接管</span>`;
-      else if (bus.incidentType === "crash") statusBadge = `<span class="badge badge-danger">💥 發生車禍・已加派接管</span>`;
-      else if (bus.isFullReturning) statusBadge = `<span class="badge badge-danger">🛑 100% 滿載返場中</span>`;
-      else if (bus.collectingCountdown > 0) statusBadge = `<span class="badge badge-collect">♻️ 到站停等收運（${bus.collectingCountdown}s 後增容）</span>`;
-      else if (bus.waitingRedLight) statusBadge = `<span class="badge badge-redlight">🚦 路口紅燈停等中</span>`;
-      else if (t.isArrivingSoon) statusBadge = `<span class="badge badge-soon">🔔 即將抵達下一站</span>`;
-      else if (bus.id.includes("接管")) statusBadge = `<span class="badge badge-dispatch">➕ 緊急加派接管中</span>`;
+    container.innerHTML = bannerHtml + listWithTelemetry.map(({ bus, t }) => {
+      const isSelected = bus.id === state.selectedBusId;
+      const loadColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
+
+      let statusBadge = `<span class="badge badge-ok">● 行駛中</span>`;
+      if (bus.incidentType === "fire") statusBadge = `<span class="badge badge-danger">🔥 失火 65°C・已接管</span>`;
+      else if (bus.incidentType === "crash") statusBadge = `<span class="badge badge-danger">💥 發生車禍・已接管</span>`;
+      else if (bus.isFullReturning) statusBadge = `<span class="badge badge-danger">🛑 100% 滿載返場</span>`;
+      else if (bus.collectingCountdown > 0) statusBadge = `<span class="badge badge-collect">♻️ 到站收運中 (${bus.collectingCountdown}s)</span>`;
+      else if (bus.waitingRedLight) statusBadge = `<span class="badge badge-redlight">🚦 紅燈停等</span>`;
+      else if (t.isArrivingSoon) statusBadge = `<span class="badge badge-soon">🔔 即將抵達</span>`;
+      else if (bus.id.includes("接管")) statusBadge = `<span class="badge badge-dispatch">➕ 緊急接管車</span>`;
 
       const nearestNote = t.hasPassedNearest
-        ? `<div class="passed-note">⏭️ 離你最近站點「${t.nearestStop.name}」<b>已離站</b>（約 ${t.passedAgoMin} 分鐘前通過）：</div>`
-        : `<div class="passed-note">📍 離你最近站點：${t.nearestStop.name}（距你約 ${t.walkMeters}m）</div>`;
+        ? `<div class="passed-note">⏭️ 最近站「${t.nearestStop.name}」<b>已離站</b>（約 ${t.passedAgoMin} 分前通過）</div>`
+        : `<div class="passed-note">📍 離你最近站：${t.nearestStop.name}（距你約 <b>${t.walkMeters}m</b>）</div>`;
 
       const boxClass = bus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "");
 
       return `
-        <div class="card bus-card ${isSelected ? "selected" : ""}" onclick="selectBusAndOpenDetail('${bus.id}')">
+        <div class="card bus-card ${isSelected ? "selected" : ""}">
           <div class="card-header">
             <div>
-              <div style="font-size:16px; font-weight:800;">${bus.id}</div>
-              <div style="font-size:12px; color:var(--muted);">${bus.name}</div>
+              <div style="font-size:16px; font-weight:900;">${bus.id} <span style="font-size:12px; font-weight:600; color:var(--muted);">・${bus.stops.length} 站</span></div>
+              <div style="font-size:12px; font-weight:700; color:var(--text); margin-top:1px;">${bus.name}</div>
               <div style="font-size:11px; color:#0f766e; margin-top:2px;">🛣️ ${bus.roadNote}</div>
             </div>
-            <div style="text-align:right;">
-              ${statusBadge}
-            </div>
+            <div>${statusBadge}</div>
           </div>
 
           ${nearestNote}
@@ -1126,16 +1238,24 @@
                 : (t.isFinished ? `終點站：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）：${t.nextStop.name}`)}
             </div>
             <div class="next-stop-meta">
-              <span>預計抵達：<b>${t.etaStr}</b></span>
+              <span>預計時間：<b>${t.etaStr}</b></span>
               <span>${bus.collectingCountdown > 0
-                ? "停等倒垃圾中，完成時載量 +2%~6%"
-                : (t.isFinished ? "今日清運完成" : `剩餘 <b>${formatCountdown(t.remainSecToNext)}</b>（約 ${t.remainMetersToNext}m）`)}</span>
+                ? "停等倒垃圾中（完成增容 +2%~6%）"
+                : (t.isFinished ? "今日清運完成" : `剩 <b>${formatCountdown(t.remainSecToNext)}</b>（約 ${t.remainMetersToNext}m）`)}</span>
             </div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--muted);">
-            <span>載量：<b>${bus.load}%</b>（僅到站增加）｜ 車斗 <b>${bus.temp.toFixed(1)}°C</b>（室外 ${w.outdoorTemp}°C）</span>
-            <span style="color:var(--primary); font-weight:700;">查看詳情 ＞</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:9px; font-size:12px; color:var(--muted);">
+            <span>車斗載量：<b>${bus.load}%</b>（僅到站增加）</span>
+            <span>車斗 <b>${bus.temp.toFixed(1)}°C</b> ｜ 室外 <b>${w.outdoorTemp}°C</b></span>
+          </div>
+          <div class="load-bar-bg">
+            <div class="load-bar-fill" style="width:${Math.min(bus.load, 100)}%; background:${loadColor};"></div>
+          </div>
+
+          <div class="card-quick-actions">
+            <button class="btn-quick" onclick="selectBusAndOpenDetail('${bus.id}')">🚛 車輛載量與溫控</button>
+            <button class="btn-quick primary" onclick="selectBusAndOpenMap('${bus.id}')">🗺️ 地圖即時追蹤</button>
           </div>
         </div>
       `;
@@ -1143,17 +1263,25 @@
   }
 
   function renderDetail() {
+    const pills = document.getElementById("detailBusPills");
+    if (pills) {
+      pills.innerHTML = ROUTES.map(b => {
+        const active = b.id === state.selectedBusId ? "active" : "";
+        return `<button class="pill ${active}" onclick="selectBusAndOpenDetail('${b.id}')">${b.id}</button>`;
+      }).join("");
+    }
+
     const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
     const t = getBusTelemetry(bus);
     const w = WEATHER_PRESETS[state.weatherIdx];
     const fillColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
     const totalDelay = bus.delayMin + (state.weatherIdx === 2 ? 1 : 0);
 
-    let alertTag = `<span class="badge badge-ok">✅ 沿真實馬路行駛・載量鎖定</span>`;
+    let alertTag = `<span class="badge badge-ok">✅ 行駛中載量固定・溫控正常</span>`;
     if (bus.incidentType === "fire") alertTag = `<span class="badge badge-danger">🔥 失火警報 65°C・已派車接管</span>`;
     else if (bus.incidentType === "crash") alertTag = `<span class="badge badge-danger">💥 交通事故停駛・已派車接管</span>`;
     else if (bus.load >= 100) alertTag = `<span class="badge badge-danger">🛑 載量 100% 滿載・已派車接管</span>`;
-    else if (bus.collectingCountdown > 0) alertTag = `<span class="badge badge-collect">♻️ 到站停等倒垃圾中（完成後增容）</span>`;
+    else if (bus.collectingCountdown > 0) alertTag = `<span class="badge badge-collect">♻️ 到站停等倒垃圾中（完成增容）</span>`;
     else if (bus.waitingRedLight) alertTag = `<span class="badge badge-redlight">🚦 路口紅燈停等中</span>`;
 
     document.getElementById("detailContainer").innerHTML = `
@@ -1219,7 +1347,7 @@
           </div>
         </div>
 
-        <button class="btn-primary" onclick="goToMapForSelected()">🗺️ 前往真實地圖（查看街道轉彎軌跡與紅綠燈）</button>
+        <button class="btn-primary" onclick="selectBusAndOpenMap('${bus.id}')">🗺️ 切換至真實地圖追蹤此車</button>
       </div>
     `;
   }
@@ -1250,7 +1378,6 @@
     trafficLayerGroup.clearLayers();
     vehicleLayerGroup.clearLayers();
 
-    // 1. 繪製 10 處主要路口紅綠燈號誌
     TRAFFIC_LIGHTS.forEach(tl => {
       const isRed = isTrafficLightRed(tl, state.tickCount);
       const icon = L.divIcon({
@@ -1265,7 +1392,6 @@
       L.marker([tl.lat, tl.lng], { icon }).bindTooltip(`${tl.name}（${isRed ? "紅燈" : "綠燈"}）`).addTo(trafficLayerGroup);
     });
 
-    // 2. 繪製使用者位置標記
     const userIcon = L.divIcon({
       className: "",
       html: `<div style="background:#2563eb; color:#fff; border:2px solid #fff; border-radius:999px; padding:2px 7px; font-size:10px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍 你的位置</div>`,
@@ -1273,7 +1399,6 @@
     });
     L.marker([state.userPos.lat, state.userPos.lng], { icon: userIcon }).addTo(vehicleLayerGroup);
 
-    // 3. 繪製沿真實道路轉彎的垃圾車路線與站點
     const busesToRender = state.showAllVehicles
       ? ROUTES
       : ROUTES.filter(b => b.id === state.selectedBusId);
@@ -1283,7 +1408,6 @@
       const isMain = bus.id === state.selectedBusId;
       const splitIdx = Math.floor(Math.min(bus.progress, bus.stops.length - 1));
 
-      // 已走過的真實道路路段
       let passedCoords = [];
       for (let i = 0; i < splitIdx; i++) {
         const seg = (bus.segmentPaths && bus.segmentPaths[i]) ? bus.segmentPaths[i] : [[bus.stops[i].lat, bus.stops[i].lng], [bus.stops[i + 1].lat, bus.stops[i + 1].lng]];
@@ -1298,7 +1422,6 @@
         L.polyline(passedCoords, { color: "#94a3b8", weight: isMain ? 5 : 3, opacity: 0.85 }).addTo(routeLayerGroup);
       }
 
-      // 尚未行駛的真實道路路段
       let remainCoords = [[t.curLat, t.curLng]];
       if (splitIdx < bus.stops.length - 1) {
         const curSeg = (bus.segmentPaths && bus.segmentPaths[splitIdx]) ? bus.segmentPaths[splitIdx] : [[bus.stops[splitIdx].lat, bus.stops[splitIdx].lng], [bus.stops[splitIdx + 1].lat, bus.stops[splitIdx + 1].lng]];
@@ -1351,10 +1474,13 @@
     }).join("");
 
     const selectedBus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
+    const w = WEATHER_PRESETS[state.weatherIdx];
+    const loadColor = (selectedBus.load >= 100 || selectedBus.incidentType) ? "#dc2626" : (selectedBus.load >= 85 ? "#f59e0b" : "#0f766e");
+
     document.getElementById("mapModeLabel").textContent = state.showAllVehicles
-      ? `全區 ${ROUTES.length} 輛清運車（共 ${ROUTES.reduce((a, b) => a + b.stops.length, 0)} 站真實道路總覽）`
+      ? `全區 ${ROUTES.length} 輛清運車（共 ${ROUTES.reduce((a, b) => a + b.stops.length, 0)} 站總覽）`
       : `${selectedBus.id} 沿真實道路軌跡（${selectedBus.stops.length} 站）`;
-    document.getElementById("btnAllVehicles").style.background = state.showAllVehicles ? "#ccfbf1" : "rgba(255,255,255,0.95)";
+    document.getElementById("btnAllVehicles").style.background = state.showAllVehicles ? "#ccfbf1" : "rgba(255,255,255,0.96)";
 
     if (leafletMap) {
       setTimeout(() => leafletMap.invalidateSize(), 50);
@@ -1376,10 +1502,18 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
-            <span style="font-size:15px; font-weight:800;">${selectedBus.id}</span>
-            <span style="font-size:12px; color:var(--muted); margin-left:6px;">載量 ${selectedBus.load}%・車斗 ${selectedBus.temp.toFixed(1)}°C</span>
+            <span style="font-size:15px; font-weight:900;">${selectedBus.id}</span>
+            <span style="font-size:12px; color:var(--muted); margin-left:6px;">車斗 ${selectedBus.temp.toFixed(1)}°C（室外 ${w.outdoorTemp}°C）</span>
           </div>
           ${statusPill}
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted);">
+          <span>目前車斗載量：<b>${selectedBus.load}%</b>（僅到站增加）</span>
+          <span style="color:var(--primary); font-weight:700; cursor:pointer;" onclick="selectBusAndOpenDetail('${selectedBus.id}')">展開車斗剖面圖 ＞</span>
+        </div>
+        <div class="load-bar-bg">
+          <div class="load-bar-fill" style="width:${Math.min(selectedBus.load, 100)}%; background:${loadColor};"></div>
         </div>
 
         <div class="next-stop-box ${selectedBus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "")}">
@@ -1411,7 +1545,7 @@
       initRealMap();
       setTimeout(() => {
         if (leafletMap) leafletMap.invalidateSize();
-        centerSelectedBus();
+        if (!state.showAllVehicles) centerSelectedBus();
       }, 80);
     }
   }
@@ -1421,7 +1555,8 @@
     switchTab("detail");
   }
 
-  function goToMapForSelected() {
+  function selectBusAndOpenMap(id) {
+    state.selectedBusId = id;
     state.showAllVehicles = false;
     switchTab("map");
   }
@@ -1437,7 +1572,11 @@
     renderMapPage();
     if (leafletMap) {
       if (state.showAllVehicles) {
-        leafletMap.setView([22.796, 120.378], 13);
+        const allPts = [];
+        ROUTES.forEach(r => r.stops.forEach(s => allPts.push([s.lat, s.lng])));
+        if (allPts.length > 0) {
+          leafletMap.fitBounds(L.latLngBounds(allPts), { padding: [24, 24] });
+        }
       } else {
         centerSelectedBus();
       }
