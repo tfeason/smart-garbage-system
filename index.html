@@ -117,7 +117,6 @@
       margin-bottom: 8px;
     }
 
-    /* 天氣與室外溫度看板 */
     .weather-strip {
       background: linear-gradient(135deg, #0284c7, #0369a1);
       color: #fff;
@@ -143,6 +142,8 @@
       font-weight: 700;
     }
     .badge-ok { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-collect { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-redlight { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
     .badge-soon { background: #ffedd5; color: #c2410c; animation: pulse 1.2s infinite; }
     .badge-passed { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .badge-danger { background: var(--danger-light); color: var(--danger); animation: pulse 1s infinite; }
@@ -188,6 +189,10 @@
     .next-stop-box.soon {
       background: #fff7ed;
       border-left-color: #ea580c;
+    }
+    .next-stop-box.collecting {
+      background: #f0fdf4;
+      border-left-color: #16a34a;
     }
     .next-stop-title { font-size: 14px; font-weight: 800; color: var(--text); }
     .next-stop-meta { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
@@ -366,7 +371,7 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">🚛 智慧垃圾清理系統</div>
-      <div class="topbar-sub">第三組原型｜真實道路網・天氣溫控・自動增班</div>
+      <div class="topbar-sub">v5.2｜到站停等才增容・紅綠燈・事故接管</div>
     </div>
     <div class="topbar-actions">
       <button class="btn-top" id="btnLayout" onclick="toggleLayout()">平板寬版</button>
@@ -380,9 +385,9 @@
       <button class="btn-demo on" id="btnRun" onclick="toggleRunning()">⏸️ 暫停／繼續行駛</button>
       <button class="btn-demo" id="btnSpeed" onclick="toggleSpeed()">⚡ 速度：1x（點此切換 4x）</button>
       <button class="btn-demo" id="btnWeather" onclick="cycleWeather()">🌦️ 切換天氣（晴朗／高溫／雷雨）</button>
-      <button class="btn-demo" id="btnAddStop" onclick="addDynamicStopForSelected()">📍 自動新增臨時清運站點</button>
-      <button class="btn-demo" id="btnLoadSurge" onclick="boostLoadToFull()">📦 載量滿載（自動增派新車）</button>
-      <button class="btn-demo" id="btnFire" onclick="toggleFireAlert()">🔥 模擬高溫警報（65°C 悶燒）</button>
+      <button class="btn-demo" id="btnToggleSignals" onclick="forceAllRedLights()">🚦 切換路口紅綠燈號誌</button>
+      <button class="btn-demo" id="btnFire" onclick="triggerIncident('fire')">🔥 示範：車斗失火（0.0002% 機率）</button>
+      <button class="btn-demo" id="btnCrash" onclick="triggerIncident('crash')">💥 示範：交通事故（0.00001% 機率）</button>
     </div>
   </div>
 
@@ -404,7 +409,7 @@
       </div>
 
       <div style="font-size:13px; font-weight:800; color:var(--muted); margin: 6px 2px 8px;" id="fleetSummary">
-        執勤班次（沿真實道路網行駛）：
+        執勤班次（行駛中容量不變・僅到站停等收運完成才增加）：
       </div>
       <div id="busListContainer"></div>
     </div>
@@ -449,6 +454,7 @@
 </div>
 
 <script>
+  // v5.2 - 到站收運才增容
   const WEATHER_PRESETS = [
     {
       icon: "☀️",
@@ -492,22 +498,38 @@
     return { name, lat, lng, x: pt.x, y: pt.y, isDynamic };
   }
 
+  const TRAFFIC_LIGHTS = [
+    { id: "TL-1", name: "中民路・中華路口", ...geoToSvg(22.7955, 120.3678), offset: 0 },
+    { id: "TL-2", name: "深水路・橫山路口", ...geoToSvg(22.8022, 120.3818), offset: 5 },
+    { id: "TL-3", name: "安招路・中興路口", ...geoToSvg(22.8102, 120.3675), offset: 9 },
+    { id: "TL-4", name: "台22線・創新路口", ...geoToSvg(22.7855, 120.3705), offset: 3 },
+    { id: "TL-5", name: "橫山路・樹德科大口", ...geoToSvg(22.7985, 120.3538), offset: 12 },
+    { id: "TL-6", name: "工程路・菜寮路口", ...geoToSvg(22.8025, 120.4024), offset: 7 }
+  ];
+
+  function isTrafficLightRed(tl, tick) {
+    const phase = (tick + tl.offset) % 20;
+    return phase < 8;
+  }
+
   const ROUTES = [
     {
       id: "KEA-8821",
       baseId: "KEA-8821",
       name: "路線 A・深水路－燕巢大學城主線",
       roadNote: "行經：中民路 → 深水路 → 橫山路 → 義大路",
-      load: 67,
-      temp: 35,
-      progress: 2.35,
-      speedPerSec: 0.045,
+      load: 64,
+      temp: 31.4,
+      progress: 2.65,
+      speedPerSec: 0.08,
       delayMin: 0,
-      fireAlert: false,
+      incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 2,
+      waitingRedLight: false,
       dispatchCount: 0,
-      dynamicStopsAdded: 0,
       color: "#0f766e",
       stops: [
         makeStop("燕巢區公所清潔隊（中民路）", 22.7932, 120.3622),
@@ -529,16 +551,18 @@
       baseId: "KEB-3095",
       name: "路線 B・安招路－北區與阿公店支線",
       roadNote: "行經：安招路 → 瓊林路 → 工程路（水庫南側）",
-      load: 86,
-      temp: 26,
-      progress: 4.2,
-      speedPerSec: 0.04,
+      load: 84,
+      temp: 32.1,
+      progress: 4.55,
+      speedPerSec: 0.075,
       delayMin: 0,
-      fireAlert: false,
+      incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 4,
+      waitingRedLight: false,
       dispatchCount: 0,
-      dynamicStopsAdded: 0,
       color: "#2563eb",
       stops: [
         makeStop("安招路・北區車輛調度場", 22.8145, 120.3560),
@@ -560,16 +584,18 @@
       baseId: "KEC-7142",
       name: "路線 C・台22線旗楠路－創新路快線",
       roadNote: "行經：旗楠路（台22線）→ 創新路 → 大社中山路",
-      load: 34,
-      temp: 28,
-      progress: 1.6,
-      speedPerSec: 0.05,
+      load: 36,
+      temp: 30.8,
+      progress: 1.75,
+      speedPerSec: 0.085,
       delayMin: 0,
-      fireAlert: false,
+      incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 1,
+      waitingRedLight: false,
       dispatchCount: 0,
-      dynamicStopsAdded: 0,
       color: "#7c3aed",
       stops: [
         makeStop("高楠公路・楠梓都會公園站", 22.7745, 120.3490),
@@ -591,16 +617,18 @@
       baseId: "KED-5508",
       name: "路線 D・阿公店水庫－東區山線清運車",
       roadNote: "行經：菜寮路 → 工程路 → 臥牛巷 → 埤底巷",
-      load: 52,
-      temp: 30,
-      progress: 6.4,
-      speedPerSec: 0.038,
+      load: 51,
+      temp: 31.2,
+      progress: 6.7,
+      speedPerSec: 0.07,
       delayMin: 0,
-      fireAlert: false,
+      incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 6,
+      waitingRedLight: false,
       dispatchCount: 0,
-      dynamicStopsAdded: 0,
       color: "#059669",
       stops: [
         makeStop("田寮聯絡道・東區山線起點", 22.8195, 120.3885),
@@ -622,16 +650,18 @@
       baseId: "KEE-9214",
       name: "路線 E・橫山路－樹德科大西區線",
       roadNote: "行經：仕隆路 → 成功南路 → 橫山路（樹德科大）",
-      load: 41,
-      temp: 29,
-      progress: 3.1,
-      speedPerSec: 0.042,
+      load: 42,
+      temp: 30.5,
+      progress: 3.65,
+      speedPerSec: 0.078,
       delayMin: 0,
-      fireAlert: false,
+      incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 3,
+      waitingRedLight: false,
       dispatchCount: 0,
-      dynamicStopsAdded: 0,
       color: "#d97706",
       stops: [
         makeStop("橋頭聯絡道・西區起點站", 22.8100, 120.3475),
@@ -688,13 +718,13 @@
     const curLng = sA.lng + (sB.lng - sA.lng) * frac;
 
     const isFinished = clamped >= maxIdx - 0.01;
-    const nextStopIdx = isFinished ? maxIdx : segIdx + 1;
+    const nextStopIdx = bus.collectingCountdown > 0 ? Math.round(clamped) : (isFinished ? maxIdx : segIdx + 1);
     const nextStop = bus.stops[nextStopIdx];
-    const remainSegsToNext = Math.max(0, nextStopIdx - clamped);
+    const remainSegsToNext = bus.collectingCountdown > 0 ? 0 : Math.max(0, nextStopIdx - clamped);
     const rainDelay = state.weatherIdx === 2 ? 1 : 0;
     const remainSecToNext = Math.round(remainSegsToNext * 150 + (bus.delayMin + rainDelay) * 60);
     const remainMetersToNext = Math.round(remainSegsToNext * 680);
-    const isArrivingSoon = !isFinished && !bus.isFullReturning && (remainSecToNext <= 60 || remainMetersToNext <= 150);
+    const isArrivingSoon = !isFinished && !bus.isFullReturning && !bus.incidentType && bus.collectingCountdown === 0 && (remainSecToNext <= 60 || remainMetersToNext <= 150);
 
     const baseDate = new Date();
     baseDate.setHours(15, 0, 0, 0);
@@ -712,7 +742,7 @@
     });
     const nearestStop = bus.stops[nearestIdx];
     const walkMeters = Math.round(minDist * 5.2);
-    const hasPassedNearest = clamped > nearestIdx + 0.05;
+    const hasPassedNearest = clamped > nearestIdx + 0.05 && bus.collectingCountdown === 0;
     const passedAgoMin = hasPassedNearest ? Math.max(1, Math.round((clamped - nearestIdx) * 2.5)) : 0;
 
     return {
@@ -732,46 +762,51 @@
     return `${m} 分 ${s.toString().padStart(2, "0")} 秒`;
   }
 
-  function insertDynamicStop(bus) {
-    if (bus.dynamicStopsAdded >= 4) return false;
-    const insertPos = Math.min(Math.floor(bus.progress) + 1, bus.stops.length - 1);
-    const stA = bus.stops[Math.max(0, insertPos - 1)];
-    const stB = bus.stops[insertPos];
-    const num = bus.dynamicStopsAdded + 1;
-    const midLat = (stA.lat + stB.lat) / 2;
-    const midLng = (stA.lng + stB.lng) / 2;
-    const newStop = makeStop(`🆕 臨時增設站 #${num}（路段滿溢通報）`, midLat, midLng, true);
-    bus.stops.splice(insertPos, 0, newStop);
-    bus.dynamicStopsAdded += 1;
-    state.systemAlert = `📍 感測器通報滿溢！系統已沿路網為 ${bus.id} 自動插入「${newStop.name}」（目前共 ${bus.stops.length} 站）。`;
-    return true;
-  }
+  function dispatchReplacementVehicle(problemBus, reason) {
+    problemBus.isFullReturning = true;
+    problemBus.returnCountdown = 25;
+    problemBus.dispatchCount += 1;
+    const suffix = String.fromCharCode(64 + problemBus.dispatchCount);
+    const newId = `${problemBus.baseId}-接管${suffix}`;
+    const resumeProgress = reason === "full" ? 0 : Math.max(0, problemBus.progress);
 
-  function triggerDispatchForRoute(fullBus) {
-    fullBus.isFullReturning = true;
-    fullBus.returnCountdown = 15;
-    fullBus.load = 100;
-    fullBus.dispatchCount += 1;
-    const suffix = String.fromCharCode(64 + fullBus.dispatchCount);
-    const newId = `${fullBus.baseId}-增${suffix}`;
     const newBus = {
-      ...fullBus,
+      ...problemBus,
       id: newId,
-      name: `${fullBus.name}（自動增派班次）`,
-      load: Math.floor(Math.random() * 10) + 5,
-      temp: WEATHER_PRESETS[state.weatherIdx].outdoorTemp + 4,
-      progress: 0,
+      name: `${problemBus.name}（緊急加派接管車）`,
+      load: reason === "full" ? 6 : Math.min(45, Math.round(problemBus.load * 0.4)),
+      temp: WEATHER_PRESETS[state.weatherIdx].outdoorTemp + 4.2,
+      progress: resumeProgress,
+      incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
+      collectingCountdown: 0,
+      waitingRedLight: false,
       dispatchCount: 0,
-      dynamicStopsAdded: 0,
-      stops: fullBus.stops.map(s => ({ ...s })),
+      stops: problemBus.stops.map(s => ({ ...s })),
       color: "#0284c7"
     };
-    const idx = ROUTES.findIndex(r => r.id === fullBus.id);
+
+    const idx = ROUTES.findIndex(r => r.id === problemBus.id);
     ROUTES.splice(idx + 1, 0, newBus);
     state.selectedBusId = newId;
-    state.systemAlert = `🚨 ${fullBus.id} 載量達 100%！已自動增派 ${newId} 從起點沿原道路接替清運，原車返場卸貨後自動回收。`;
+
+    if (reason === "fire") {
+      state.systemAlert = `🔥 緊急警報（0.0002% 失火事件）：${problemBus.id} 車斗達 65°C！已自動停駛並加派 ${newId} 接管路線。`;
+    } else if (reason === "crash") {
+      state.systemAlert = `💥 緊急警報（0.00001% 車禍事件）：${problemBus.id} 發生車禍！已自動加派 ${newId} 接管後續清運任務。`;
+    } else {
+      state.systemAlert = `📦 滿載調度：${problemBus.id} 到站收運後載量達 100%！已加派 ${newId} 從起點接管路線。`;
+    }
+  }
+
+  function triggerIncident(type) {
+    const bus = ROUTES.find(b => b.id === state.selectedBusId && !b.isFullReturning && !b.incidentType) || ROUTES[0];
+    if (!bus || bus.incidentType || bus.isFullReturning) return;
+    bus.incidentType = type;
+    if (type === "fire") bus.temp = 65.0;
+    dispatchReplacementVehicle(bus, type);
+    renderAll();
   }
 
   function renderWeatherBanner() {
@@ -799,7 +834,7 @@
     }
     const pill = document.getElementById("mapWeatherPill");
     if (pill) {
-      pill.textContent = `${w.icon} 室外 ${w.outdoorTemp}°C・${w.condition}（濕度 ${w.humidity}%）`;
+      pill.textContent = `${w.icon} 室外 ${w.outdoorTemp}°C・${w.condition}`;
     }
   }
 
@@ -807,35 +842,32 @@
     renderWeatherBanner();
     const w = WEATHER_PRESETS[state.weatherIdx];
     document.getElementById("userLocName").textContent = state.userPos.name;
-    const totalStops = ROUTES.reduce((acc, r) => acc + r.stops.length, 0);
     document.getElementById("fleetSummary").textContent =
-      `目前線上 ${ROUTES.length} 輛清運車・共 ${totalStops} 個真實道路站點：`;
+      `線上 ${ROUTES.length} 輛清運車（行駛中載量不變・僅到站停等收運完成才增加）：`;
 
     const container = document.getElementById("busListContainer");
     const bannerHtml = state.systemAlert
-      ? `<div class="card" style="background:#eff6ff; border-color:#93c5fd; font-size:12px; font-weight:700; color:#1e3a8a;">${state.systemAlert}</div>`
+      ? `<div class="card" style="background:#fef2f2; border-color:#fca5a5; font-size:12px; font-weight:700; color:#991b1b;">${state.systemAlert}</div>`
       : "";
 
     container.innerHTML = bannerHtml + ROUTES.map(bus => {
       const t = getBusTelemetry(bus);
       const isSelected = bus.id === state.selectedBusId;
-      const effectiveTemp = bus.fireAlert ? 65 : Math.max(bus.temp, w.outdoorTemp + 5);
 
-      let statusBadge = `<span class="badge badge-ok">● 行駛中（${bus.stops.length} 站）</span>`;
-      if (bus.isFullReturning) statusBadge = `<span class="badge badge-danger">🛑 滿載返場中（${bus.returnCountdown}s 後回收）</span>`;
-      else if (bus.fireAlert) statusBadge = `<span class="badge badge-danger">🔥 溫度異常 ${effectiveTemp}°C</span>`;
+      let statusBadge = `<span class="badge badge-ok">● 道路行駛中（載量鎖定）</span>`;
+      if (bus.incidentType === "fire") statusBadge = `<span class="badge badge-danger">🔥 失火 65°C・已加派接管</span>`;
+      else if (bus.incidentType === "crash") statusBadge = `<span class="badge badge-danger">💥 發生車禍・已加派接管</span>`;
+      else if (bus.isFullReturning) statusBadge = `<span class="badge badge-danger">🛑 100% 滿載返場中</span>`;
+      else if (bus.collectingCountdown > 0) statusBadge = `<span class="badge badge-collect">♻️ 到站停等收運（${bus.collectingCountdown}s 後增容）</span>`;
+      else if (bus.waitingRedLight) statusBadge = `<span class="badge badge-redlight">🚦 路口紅燈停等中</span>`;
       else if (t.isArrivingSoon) statusBadge = `<span class="badge badge-soon">🔔 即將抵達下一站</span>`;
-      else if (bus.id.includes("增")) statusBadge = `<span class="badge badge-dispatch">➕ 自動增派班次</span>`;
-      else if (t.isFinished) statusBadge = `<span class="badge badge-passed">🏁 本班次已抵達終點</span>`;
-
-      const totalDelay = bus.delayMin + (state.weatherIdx === 2 ? 1 : 0);
-      const delayBadge = totalDelay > 0
-        ? `<span class="badge badge-delay">⚠️ 延誤 +${totalDelay} 分${state.weatherIdx === 2 ? "（雨天）" : ""}</span>`
-        : `<span style="color:#0f766e; font-weight:700;">準點</span>`;
+      else if (bus.id.includes("接管")) statusBadge = `<span class="badge badge-dispatch">➕ 緊急加派接管中</span>`;
 
       const nearestNote = t.hasPassedNearest
-        ? `<div class="passed-note">⏭️ 離你最近路口「${t.nearestStop.name}」<b>已離站</b>（約 ${t.passedAgoMin} 分鐘前通過），系統自動追蹤最新下一站：</div>`
+        ? `<div class="passed-note">⏭️ 離你最近站點「${t.nearestStop.name}」<b>已離站</b>（約 ${t.passedAgoMin} 分鐘前通過）：</div>`
         : `<div class="passed-note">📍 離你最近站點：${t.nearestStop.name}（距你約 ${t.walkMeters}m）</div>`;
+
+      const boxClass = bus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "");
 
       return `
         <div class="card bus-card ${isSelected ? "selected" : ""}" onclick="selectBusAndOpenDetail('${bus.id}')">
@@ -847,24 +879,27 @@
             </div>
             <div style="text-align:right;">
               ${statusBadge}
-              <div style="font-size:11px; margin-top:4px;">${delayBadge}</div>
             </div>
           </div>
 
           ${nearestNote}
 
-          <div class="next-stop-box ${t.isArrivingSoon ? "soon" : ""}">
+          <div class="next-stop-box ${boxClass}">
             <div class="next-stop-title">
-              ${t.isFinished ? `終點站：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）：${t.nextStop.name}`}
+              ${bus.collectingCountdown > 0
+                ? `正在停靠收垃圾：${t.nextStop.name}`
+                : (t.isFinished ? `終點站：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）：${t.nextStop.name}`)}
             </div>
             <div class="next-stop-meta">
               <span>預計抵達：<b>${t.etaStr}</b></span>
-              <span>${t.isFinished ? "今日清運完成" : `剩餘 <b>${formatCountdown(t.remainSecToNext)}</b>（約 ${t.remainMetersToNext}m）`}</span>
+              <span>${bus.collectingCountdown > 0
+                ? "停等倒垃圾中，完成時載量 +2%~6%"
+                : (t.isFinished ? "今日清運完成" : `剩餘 <b>${formatCountdown(t.remainSecToNext)}</b>（約 ${t.remainMetersToNext}m）`)}</span>
             </div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--muted);">
-            <span>載量：<b>${bus.load}%</b> ｜ 車斗 <b>${effectiveTemp}°C</b>（室外 ${w.outdoorTemp}°C）</span>
+            <span>載量：<b>${bus.load}%</b>（僅到站增加）｜ 車斗 <b>${bus.temp.toFixed(1)}°C</b>（室外 ${w.outdoorTemp}°C）</span>
             <span style="color:var(--primary); font-weight:700;">查看詳情 ＞</span>
           </div>
         </div>
@@ -876,26 +911,26 @@
     const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
     const t = getBusTelemetry(bus);
     const w = WEATHER_PRESETS[state.weatherIdx];
-    const effectiveTemp = bus.fireAlert ? 65 : Math.max(bus.temp, w.outdoorTemp + 5);
-    const fillColor = bus.load >= 100 || bus.fireAlert ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
+    const fillColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
     const totalDelay = bus.delayMin + (state.weatherIdx === 2 ? 1 : 0);
+
+    let alertTag = `<span class="badge badge-ok">✅ 行駛中載量固定・溫控正常</span>`;
+    if (bus.incidentType === "fire") alertTag = `<span class="badge badge-danger">🔥 失火警報 65°C・已派車接管</span>`;
+    else if (bus.incidentType === "crash") alertTag = `<span class="badge badge-danger">💥 交通事故停駛・已派車接管</span>`;
+    else if (bus.load >= 100) alertTag = `<span class="badge badge-danger">🛑 載量 100% 滿載・已派車接管</span>`;
+    else if (bus.collectingCountdown > 0) alertTag = `<span class="badge badge-collect">♻️ 到站停等倒垃圾中（完成後增容）</span>`;
+    else if (bus.waitingRedLight) alertTag = `<span class="badge badge-redlight">🚦 路口紅燈停等中</span>`;
 
     document.getElementById("detailContainer").innerHTML = `
       <div class="card">
         <div class="card-header">
           <div>
-            <div style="font-size:11px; color:var(--muted); font-weight:700;">當前追蹤車輛（共 ${bus.stops.length} 個真實道路站點）</div>
+            <div style="font-size:11px; color:var(--muted); font-weight:700;">當前追蹤車輛（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）</div>
             <div style="font-size:20px; font-weight:900;">${bus.id}</div>
             <div style="font-size:12px; color:var(--muted);">${bus.name}</div>
             <div style="font-size:11px; color:#0f766e; margin-top:2px;">🛣️ ${bus.roadNote}</div>
           </div>
-          ${bus.load >= 100
-            ? `<span class="badge badge-danger">🛑 載量 100% 滿載・已自動增派</span>`
-            : (bus.fireAlert
-              ? `<span class="badge badge-danger">🔥 悶燒高溫警報</span>`
-              : (bus.load >= 85
-                ? `<span class="badge badge-delay">📦 載量達 ${bus.load}%・接近滿載</span>`
-                : `<span class="badge badge-ok">✅ 溫控與載量正常</span>`))}
+          ${alertTag}
         </div>
 
         <div class="truck-visual">
@@ -909,13 +944,13 @@
             <circle cx="122" cy="84" r="12" fill="#1e293b"/>
             <circle cx="180" cy="84" r="12" fill="#1e293b"/>
           </svg>
-          <div style="font-size:11px; color:var(--muted);">車斗載量隨行駛隨機遞增，達 100% 自動增派班車沿原路線接替</div>
+          <div style="font-size:11px; color:var(--muted);">行駛途中載量完全不會增加；僅在到站停等倒垃圾結束時增加 2%~6%</div>
         </div>
 
         <div class="metrics-row">
           <div class="metric-box">
-            <div class="metric-val" style="color:${bus.fireAlert ? "#dc2626" : "#0f172a"};">🌡️ ${effectiveTemp}°C</div>
-            <div class="metric-lbl">車斗內部溫度（閾值 65°C）</div>
+            <div class="metric-val" style="color:${bus.incidentType === "fire" ? "#dc2626" : "#0f172a"};">🌡️ ${bus.temp.toFixed(1)}°C</div>
+            <div class="metric-lbl">車斗溫度（每 6 秒微幅更新）</div>
           </div>
           <div class="metric-box">
             <div class="metric-val" style="color:#0284c7;">${w.icon} ${w.outdoorTemp}°C</div>
@@ -926,28 +961,30 @@
             <div class="metric-lbl">下一站預計抵達時間</div>
           </div>
           <div class="metric-box">
-            <div class="metric-val" style="color:${totalDelay > 0 ? "#b45309" : "#0f766e"};">
-              ${totalDelay > 0 ? `+${totalDelay} 分` : "準點"}
+            <div class="metric-val" style="color:${bus.waitingRedLight ? "#dc2626" : "#0f766e"};">
+              ${bus.waitingRedLight ? "🚦 紅燈停等" : (totalDelay > 0 ? `+${totalDelay} 分` : "正常通行")}
             </div>
-            <div class="metric-lbl">路況與天候延誤</div>
+            <div class="metric-lbl">路口號誌與路況狀態</div>
           </div>
         </div>
 
-        <div class="next-stop-box ${t.isArrivingSoon ? "soon" : ""}" style="margin-top:12px;">
+        <div class="next-stop-box ${bus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "")}" style="margin-top:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; font-weight:700; color:var(--muted);">車輛目前動態進度（第 ${t.nextStopIdx + 1}/${bus.stops.length} 站）</span>
-            ${t.isArrivingSoon ? `<span class="badge badge-soon">🔔 即將抵達</span>` : ""}
+            <span style="font-size:11px; font-weight:700; color:var(--muted);">車輛目前動態進度</span>
+            ${bus.collectingCountdown > 0
+              ? `<span class="badge badge-collect">♻️ 到站倒垃圾中</span>`
+              : (t.isArrivingSoon ? `<span class="badge badge-soon">🔔 即將抵達</span>` : "")}
           </div>
           <div class="next-stop-title" style="margin-top:4px;">
-            ${t.isFinished ? `終點站：${t.nextStop.name}` : `下一站：${t.nextStop.name}`}
+            ${bus.collectingCountdown > 0 ? `目前停靠站：${t.nextStop.name}` : `下一站：${t.nextStop.name}`}
           </div>
           <div class="next-stop-meta">
-            <span>剩餘時間：<b>${t.isFinished ? "已抵達" : formatCountdown(t.remainSecToNext)}</b></span>
+            <span>剩餘時間：<b>${bus.collectingCountdown > 0 ? `停等收運剩 ${bus.collectingCountdown} 秒` : formatCountdown(t.remainSecToNext)}</b></span>
             <span>距離該站：<b>約 ${t.remainMetersToNext} 公尺</b></span>
           </div>
         </div>
 
-        <button class="btn-primary" onclick="goToMapForSelected()">🗺️ 前往地圖（查看真實道路路線）</button>
+        <button class="btn-primary" onclick="goToMapForSelected()">🗺️ 前往地圖（查看真實道路與紅綠燈號誌）</button>
       </div>
     `;
   }
@@ -958,14 +995,14 @@
     pills.innerHTML = ROUTES.map(bus => {
       const t = getBusTelemetry(bus);
       const active = bus.id === state.selectedBusId ? "active" : "";
-      const tag = t.isArrivingSoon ? "🔔" : (bus.load >= 100 ? "🛑" : (bus.delayMin > 0 ? "⚠️" : ""));
+      const tag = bus.incidentType ? "🚨" : (bus.collectingCountdown > 0 ? "♻️" : (bus.waitingRedLight ? "🚦" : (t.isArrivingSoon ? "🔔" : "")));
       return `<button class="pill ${active}" onclick="selectBusOnMap('${bus.id}')">${bus.id} ${tag}</button>`;
     }).join("");
 
     const selectedBus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
     document.getElementById("mapModeLabel").textContent = state.showAllVehicles
-      ? `全區 ${ROUTES.length} 輛垃圾車總覽（高雄燕巢真實路網）`
-      : `${selectedBus.id} 真實道路路線（可拖曳／縮放）`;
+      ? `全區 ${ROUTES.length} 輛垃圾車與路口紅綠燈總覽`
+      : `${selectedBus.id} 真實道路與紅綠燈號誌（可拖曳／縮放）`;
     document.getElementById("btnAllVehicles").style.background = state.showAllVehicles ? "#ccfbf1" : "rgba(255,255,255,0.95)";
 
     drawMapSvg();
@@ -974,25 +1011,30 @@
     const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${t.curLat.toFixed(5)},${t.curLng.toFixed(5)}`;
     const appleMapsUrl = `https://maps.apple.com/?ll=${t.curLat.toFixed(5)},${t.curLng.toFixed(5)}&q=${encodeURIComponent(selectedBus.id + " 智慧垃圾車")}`;
 
+    let statusPill = `<span class="badge badge-ok">沿道路行駛中</span>`;
+    if (selectedBus.incidentType === "fire") statusPill = `<span class="badge badge-danger">🔥 失火停駛・已派車接管</span>`;
+    else if (selectedBus.incidentType === "crash") statusPill = `<span class="badge badge-danger">💥 車禍停駛・已派車接管</span>`;
+    else if (selectedBus.collectingCountdown > 0) statusPill = `<span class="badge badge-collect">♻️ 到站收垃圾（${selectedBus.collectingCountdown}s 後增容）</span>`;
+    else if (selectedBus.waitingRedLight) statusPill = `<span class="badge badge-redlight">🚦 紅燈停等中</span>`;
+    else if (t.isArrivingSoon) statusPill = `<span class="badge badge-soon">🔔 即將抵達</span>`;
+
     document.getElementById("mapInfoCard").innerHTML = `
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
             <span style="font-size:15px; font-weight:800;">${selectedBus.id}</span>
-            <span style="font-size:12px; color:var(--muted); margin-left:6px;">載量 ${selectedBus.load}%・座標 (${t.curLat.toFixed(4)}, ${t.curLng.toFixed(4)})</span>
+            <span style="font-size:12px; color:var(--muted); margin-left:6px;">載量 ${selectedBus.load}%・車斗 ${selectedBus.temp.toFixed(1)}°C</span>
           </div>
-          ${t.isArrivingSoon
-            ? `<span class="badge badge-soon">🔔 即將抵達</span>`
-            : `<span class="badge badge-ok">沿道路行駛中</span>`}
+          ${statusPill}
         </div>
 
-        <div class="next-stop-box ${t.isArrivingSoon ? "soon" : ""}">
+        <div class="next-stop-box ${selectedBus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "")}">
           <div class="next-stop-title">
-            ${t.isFinished ? `已抵達終點：${t.nextStop.name}` : `下一站：${t.nextStop.name}`}
+            ${selectedBus.collectingCountdown > 0 ? `停靠收垃圾：${t.nextStop.name}` : `下一站：${t.nextStop.name}`}
           </div>
           <div class="next-stop-meta">
             <span>預計時間：<b>${t.etaStr}</b></span>
-            <span>剩餘：<b>${t.isFinished ? "0 秒" : formatCountdown(t.remainSecToNext)}</b>（${t.remainMetersToNext}m）</span>
+            <span>剩餘：<b>${selectedBus.collectingCountdown > 0 ? `收運中 ${selectedBus.collectingCountdown} 秒` : formatCountdown(t.remainSecToNext)}</b>（${t.remainMetersToNext}m）</span>
           </div>
         </div>
 
@@ -1045,10 +1087,16 @@
       html += `<polyline points="${roadPts}" fill="none" stroke="#cbd5e1" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>`;
     });
 
-    const lblHwy22 = geoToSvg(22.784, 120.369);
-    html += `<text x="${lblHwy22.x}" y="${lblHwy22.y + 14}" font-size="8.5" fill="#64748b" font-weight="700">台22線・旗楠路</text>`;
-    const lblShenshui = geoToSvg(22.802, 120.382);
-    html += `<text x="${lblShenshui.x}" y="${lblShenshui.y - 12}" font-size="8.5" fill="#64748b" font-weight="700">高36・深水路</text>`;
+    TRAFFIC_LIGHTS.forEach(tl => {
+      const isRed = isTrafficLightRed(tl, state.tickCount);
+      html += `
+        <g>
+          <rect x="${tl.x - 5}" y="${tl.y - 11}" width="10" height="20" rx="3" fill="#1e293b" stroke="#ffffff" stroke-width="1"/>
+          <circle cx="${tl.x}" cy="${tl.y - 5}" r="3.2" fill="${isRed ? "#ef4444" : "#475569"}"/>
+          <circle cx="${tl.x}" cy="${tl.y + 3}" r="3.2" fill="${!isRed ? "#22c55e" : "#475569"}"/>
+        </g>
+      `;
+    });
 
     const busesToRender = state.showAllVehicles
       ? ROUTES
@@ -1076,24 +1124,25 @@
         bus.stops.forEach((st, idx) => {
           const isNext = idx === t.nextStopIdx && !t.isFinished;
           const isPassed = idx <= splitIdx;
-          const r = isNext ? 6.5 : (st.isDynamic ? 5.8 : 4.2);
-          const fill = isNext ? "#ea580c" : (st.isDynamic ? "#2563eb" : (isPassed ? "#94a3b8" : "#ffffff"));
-          const stroke = (isNext || st.isDynamic) ? "#fff" : bus.color;
+          const r = isNext ? 6.5 : 4.2;
+          const fill = isNext ? (bus.collectingCountdown > 0 ? "#16a34a" : "#ea580c") : (isPassed ? "#94a3b8" : "#ffffff");
+          const stroke = isNext ? "#fff" : bus.color;
           html += `<circle cx="${st.x}" cy="${st.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
-          if (idx === 0 || idx === bus.stops.length - 1 || isNext || idx === t.nearestIdx || st.isDynamic) {
-            html += `<text x="${st.x}" y="${st.y - 9}" text-anchor="middle" font-size="9" font-weight="800" fill="${st.isDynamic ? "#1d4ed8" : "#1e293b"}">${st.name}</text>`;
+          if (idx === 0 || idx === bus.stops.length - 1 || isNext || idx === t.nearestIdx) {
+            html += `<text x="${st.x}" y="${st.y - 9}" text-anchor="middle" font-size="9" font-weight="800" fill="#1e293b">${st.name}</text>`;
           }
         });
       }
 
-      const truckColor = (bus.load >= 100 || bus.fireAlert) ? "#dc2626" : bus.color;
+      const truckColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.collectingCountdown > 0 ? "#16a34a" : bus.color);
+      const badgeText = bus.incidentType === "fire" ? "🔥失火" : (bus.incidentType === "crash" ? "💥車禍" : (bus.collectingCountdown > 0 ? "♻️收運中" : (bus.waitingRedLight ? "🚦紅燈" : `${bus.load}%`)));
       html += `
         <g style="cursor:pointer;" onclick="selectBusOnMap('${bus.id}')">
           <circle cx="${t.curX}" cy="${t.curY}" r="${isMain ? 15 : 11}" fill="${truckColor}" opacity="0.22"/>
           <circle cx="${t.curX}" cy="${t.curY}" r="${isMain ? 10 : 8}" fill="${truckColor}" stroke="#ffffff" stroke-width="2.5"/>
           <text x="${t.curX}" y="${t.curY + 3.5}" text-anchor="middle" font-size="10" fill="#fff">🚛</text>
-          <rect x="${t.curX - 34}" y="${t.curY + 12}" width="68" height="15" rx="4" fill="#0f172a"/>
-          <text x="${t.curX}" y="${t.curY + 22.5}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff">${bus.id} (${bus.load}%)</text>
+          <rect x="${t.curX - 38}" y="${t.curY + 12}" width="76" height="15" rx="4" fill="#0f172a"/>
+          <text x="${t.curX}" y="${t.curY + 22.5}" text-anchor="middle" font-size="8.2" font-weight="700" fill="#fff">${bus.id} ${badgeText}</text>
         </g>
       `;
     });
@@ -1235,27 +1284,8 @@
     renderAll();
   }
 
-  function addDynamicStopForSelected() {
-    const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
-    if (!insertDynamicStop(bus)) {
-      alert("此路線已達臨時增設站點上限（最多 4 站），確保路線運作流暢！");
-    }
-    renderAll();
-  }
-
-  function boostLoadToFull() {
-    const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
-    if (!bus.isFullReturning) {
-      bus.load = 100;
-      triggerDispatchForRoute(bus);
-    }
-    renderAll();
-  }
-
-  function toggleFireAlert() {
-    const bus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
-    bus.fireAlert = !bus.fireAlert;
-    document.getElementById("btnFire").classList.toggle("warn", bus.fireAlert);
+  function forceAllRedLights() {
+    state.tickCount += 8;
     renderAll();
   }
 
@@ -1265,25 +1295,19 @@
     if (state.tab === "map") renderMapPage();
   }
 
+  // 主模擬迴圈：行駛中載量完全不變，只有在「到站停等倒垃圾結束」的那一秒才增加載量
   setInterval(() => {
     if (state.running) {
       state.tickCount += 1;
-
-      if (state.tickCount % 18 === 0) {
-        const activeBuses = ROUTES.filter(b => !b.isFullReturning && b.dynamicStopsAdded < 4);
-        if (activeBuses.length > 0) {
-          const target = activeBuses[Math.floor(Math.random() * activeBuses.length)];
-          insertDynamicStop(target);
-        }
-      }
+      const w = WEATHER_PRESETS[state.weatherIdx];
 
       for (let i = ROUTES.length - 1; i >= 0; i--) {
         const bus = ROUTES[i];
 
-        if (bus.isFullReturning) {
+        if (bus.isFullReturning || bus.incidentType) {
           bus.returnCountdown -= 1;
-          if (bus.returnCountdown <= 0) {
-            if (state.selectedBusId === bus.id && ROUTES.length > 1) {
+          if (bus.returnCountdown <= 0 && ROUTES.length > 1) {
+            if (state.selectedBusId === bus.id) {
               state.selectedBusId = ROUTES[0].id === bus.id ? ROUTES[1].id : ROUTES[0].id;
             }
             ROUTES.splice(i, 1);
@@ -1291,19 +1315,67 @@
           continue;
         }
 
-        const maxIdx = bus.stops.length - 1;
-        const weatherSpeedFactor = state.weatherIdx === 2 ? 0.85 : 1;
-        bus.progress += bus.speedPerSec * state.speedMultiplier * weatherSpeedFactor;
-        if (bus.progress >= maxIdx) {
-          bus.progress = 0;
+        if (state.tickCount % 6 === 0) {
+          const normalBase = w.outdoorTemp + 4.5;
+          const delta = (Math.random() * 0.4 - 0.2);
+          const nextTemp = bus.temp + delta;
+          bus.temp = Math.max(normalBase - 1.5, Math.min(normalBase + 2.0, Math.round(nextTemp * 10) / 10));
         }
 
-        const randInc = Math.random() * 2.4 * state.speedMultiplier;
-        bus.load = Math.min(100, Math.round((bus.load + randInc) * 10) / 10);
-
-        if (bus.load >= 100 && ROUTES.length < 15) {
-          triggerDispatchForRoute(bus);
+        const roll = Math.random();
+        if (roll < 0.000002) {
+          bus.incidentType = "fire";
+          bus.temp = 65.0;
+          dispatchReplacementVehicle(bus, "fire");
           break;
+        } else if (roll < 0.000002 + 0.0000001) {
+          bus.incidentType = "crash";
+          dispatchReplacementVehicle(bus, "crash");
+          break;
+        }
+
+        // 到站停等收垃圾階段：倒數歸零時才增加小幅載量（+2% ~ +6%），其餘時間不增容
+        if (bus.collectingCountdown > 0) {
+          bus.collectingCountdown -= 1;
+          if (bus.collectingCountdown === 0) {
+            const addedLoad = Math.floor(Math.random() * 5) + 2;
+            bus.load = Math.min(100, bus.load + addedLoad);
+            if (bus.load >= 100 && ROUTES.length < 15) {
+              dispatchReplacementVehicle(bus, "full");
+              break;
+            }
+          }
+          continue;
+        }
+
+        const t = getBusTelemetry(bus);
+        const nearRedLight = TRAFFIC_LIGHTS.some(tl =>
+          isTrafficLightRed(tl, state.tickCount) && Math.hypot(t.curX - tl.x, t.curY - tl.y) < 14
+        );
+        if (nearRedLight) {
+          bus.waitingRedLight = true;
+          continue;
+        } else {
+          bus.waitingRedLight = false;
+        }
+
+        const maxIdx = bus.stops.length - 1;
+        const weatherSpeedFactor = state.weatherIdx === 2 ? 0.85 : 1;
+        const prevFloor = Math.floor(bus.progress);
+        bus.progress = Math.min(maxIdx, bus.progress + bus.speedPerSec * state.speedMultiplier * weatherSpeedFactor);
+
+        const curFloor = Math.floor(bus.progress);
+        // 抵達新的站點（不含起點 0）：停靠在站點並開始倒數收垃圾，完成後才增加載量
+        if (curFloor > prevFloor && curFloor > 0 && curFloor !== bus.lastCollectedStopIdx) {
+          bus.progress = curFloor;
+          bus.lastCollectedStopIdx = curFloor;
+          bus.collectingCountdown = 3;
+          continue;
+        }
+
+        if (bus.progress >= maxIdx) {
+          bus.progress = 0;
+          bus.lastCollectedStopIdx = 0;
         }
       }
     }
