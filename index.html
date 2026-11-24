@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>智慧垃圾清理系統 - 第三組互動原型</title>
-  <!-- Leaflet 真實地圖引擎 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
@@ -262,7 +261,7 @@
     .map-wrap {
       position: relative;
       width: 100%;
-      height: 360px;
+      height: 370px;
       background: #e2e8f0;
       border-radius: 14px;
       overflow: hidden;
@@ -368,7 +367,7 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">🚛 智慧垃圾清理系統</div>
-      <div class="topbar-sub">v6.0｜真實街道地圖・現實即時氣象・到站增容</div>
+      <div class="topbar-sub">v7.0｜沿真實道路軌跡・8 路線 120 站・即時氣象</div>
     </div>
     <div class="topbar-actions">
       <button class="btn-top" id="btnLayout" onclick="toggleLayout()">平板寬版</button>
@@ -406,7 +405,7 @@
       </div>
 
       <div style="font-size:13px; font-weight:800; color:var(--muted); margin: 6px 2px 8px;" id="fleetSummary">
-        執勤班次（行駛中載量固定・僅到站停等收運完成才增加）：
+        執勤班次（沿真實道路彎曲軌跡行駛）：
       </div>
       <div id="busListContainer"></div>
     </div>
@@ -419,7 +418,7 @@
       <div class="bus-pills" id="mapBusPills"></div>
 
       <div class="map-wrap">
-        <div class="map-mode-badge" id="mapModeLabel">真實街道地圖（OpenStreetMap）</div>
+        <div class="map-mode-badge" id="mapModeLabel">沿真實道路轉彎軌跡（OpenStreetMap）</div>
         <div class="map-weather-pill" id="mapWeatherPill">☀️ 載入現實氣象中...</div>
         <div class="map-controls">
           <button class="map-ctrl-btn" onclick="centerSelectedBus()" title="置中追蹤車輛">🎯</button>
@@ -449,7 +448,6 @@
 </div>
 
 <script>
-  // 氣象預設（第 0 筆會自動透過 Open-Meteo API 抓取現實即時天氣覆蓋）
   const WEATHER_PRESETS = [
     {
       icon: "☀️",
@@ -483,14 +481,18 @@
     }
   ];
 
-  // 真實道路路口紅綠燈號誌
+  // 10 處主要真實路口紅綠燈號誌
   const TRAFFIC_LIGHTS = [
-    { id: "TL-1", name: "中民路・中華路口", lat: 22.7955, lng: 120.3678, offset: 0 },
-    { id: "TL-2", name: "深水路・橫山路口", lat: 22.8022, lng: 120.3818, offset: 5 },
+    { id: "TL-1", name: "中民路・中華路口", lat: 22.7948, lng: 120.3665, offset: 0 },
+    { id: "TL-2", name: "深水路・橫山路口", lat: 22.8018, lng: 120.3805, offset: 5 },
     { id: "TL-3", name: "安招路・中興路口", lat: 22.8102, lng: 120.3675, offset: 9 },
     { id: "TL-4", name: "台22線・創新路口", lat: 22.7855, lng: 120.3705, offset: 3 },
-    { id: "TL-5", name: "橫山路・樹德科大口", lat: 22.7985, lng: 120.3538, offset: 12 },
-    { id: "TL-6", name: "工程路・菜寮路口", lat: 22.8025, lng: 120.4024, offset: 7 }
+    { id: "TL-5", name: "橫山路・樹德科大口", lat: 22.7972, lng: 120.3545, offset: 12 },
+    { id: "TL-6", name: "工程路・菜寮路口", lat: 22.8025, lng: 120.4024, offset: 7 },
+    { id: "TL-7", name: "土庫一路・清豐二路口", lat: 22.7805, lng: 120.3615, offset: 2 },
+    { id: "TL-8", name: "大社中山路・三民路口", lat: 22.7768, lng: 120.3965, offset: 11 },
+    { id: "TL-9", name: "成功南路・仕隆路口", lat: 22.8048, lng: 120.3502, offset: 6 },
+    { id: "TL-10", name: "義大路・角宿路口", lat: 22.7975, lng: 120.3898, offset: 14 }
   ];
 
   function isTrafficLightRed(tl, tick) {
@@ -501,17 +503,93 @@
     return { name, lat, lng };
   }
 
-  // 5 條高雄市燕巢區／楠梓／大社真實道路路線
+  // 8 條真實道路清運路線，每條 15 個真實站點（共 120 站），並支援 OSRM 真實道路幾何貼合
   const ROUTES = [
     {
       id: "KEA-8821",
       baseId: "KEA-8821",
       name: "路線 A・深水路－燕巢大學城主線",
-      roadNote: "行經：中民路 → 深水路 → 橫山路 → 義大路",
+      roadNote: "中民路 → 深水路 → 橫山路 → 義大路 → 角宿路",
       load: 64,
       temp: 31.4,
-      progress: 2.65,
+      progress: 3.4,
       speedPerSec: 0.08,
+      delayMin: 0,
+      incidentType: null,
+      isFullReturning: false,
+      returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 3,
+      waitingRedLight: false,
+      dispatchCount: 0,
+      color: "#0f766e",
+      roadSnapped: false,
+      segmentPaths: [],
+      stops: [
+        makeStop("1. 燕巢區公所清潔隊（中民路）", 22.7932, 120.3622),
+        makeStop("2. 中民路・燕巢農會前", 22.7941, 120.3645),
+        makeStop("3. 中華路・燕巢國小側門", 22.7955, 120.3672),
+        makeStop("4. 深水路西段・社區活動站", 22.7972, 120.3710),
+        makeStop("5. 深水路・高科大燕巢校區正門", 22.7988, 120.3748),
+        makeStop("6. 深水路一段・學生宿舍區", 22.8005, 120.3782),
+        makeStop("7. 橫山路・橫山社區入口", 22.8022, 120.3818),
+        makeStop("8. 橫山路東段・橫山活動中心", 22.8035, 120.3848),
+        makeStop("9. 義大路北口・聯絡道站", 22.8012, 120.3872),
+        makeStop("10. 義大路・義大醫院轉運口", 22.7988, 120.3888),
+        makeStop("11. 角宿路・角宿天后宮廣場", 22.7958, 120.3915),
+        makeStop("12. 鳳旗路・鳳雄國小前", 22.7928, 120.3942),
+        makeStop("13. 滾水路・滾水社區集運點", 22.7902, 120.3975),
+        makeStop("14. 安林路・燕巢工業區南站", 22.7872, 120.4012),
+        makeStop("15. 終點・南區資源轉運站", 22.7842, 120.4048)
+      ]
+    },
+    {
+      id: "KEB-3095",
+      baseId: "KEB-3095",
+      name: "路線 B・安招路－北區與阿公店支線",
+      roadNote: "安招路 → 瓊林路 → 尖山路 → 工程路",
+      load: 84,
+      temp: 32.1,
+      progress: 5.2,
+      speedPerSec: 0.075,
+      delayMin: 0,
+      incidentType: null,
+      isFullReturning: false,
+      returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 5,
+      waitingRedLight: false,
+      dispatchCount: 0,
+      color: "#2563eb",
+      roadSnapped: false,
+      segmentPaths: [],
+      stops: [
+        makeStop("1. 安招路・北區車輛調度場", 22.8145, 120.3560),
+        makeStop("2. 安招路一段・北口住宅區", 22.8132, 120.3592),
+        makeStop("3. 安招路中段・農產集貨站", 22.8118, 120.3625),
+        makeStop("4. 瓊林路・瓊林社區公園", 22.8105, 120.3658),
+        makeStop("5. 中興路・燕巢北區市場", 22.8092, 120.3698),
+        makeStop("6. 湖仔內路・湖仔內路口", 22.8102, 120.3735),
+        makeStop("7. 尖山路西口・住宅聚落", 22.8112, 120.3768),
+        makeStop("8. 尖山路・尖山社區活動站", 22.8124, 120.3802),
+        makeStop("9. 金山路・金山國小前", 22.8138, 120.3838),
+        makeStop("10. 深水路二段・泥火山路口", 22.8122, 120.3878),
+        makeStop("11. 麒麟尾路・麒麟尾社區", 22.8102, 120.3918),
+        makeStop("12. 工程路北段・深水北站", 22.8082, 120.3962),
+        makeStop("13. 工程路・水庫南側觀景口", 22.8065, 120.4002),
+        makeStop("14. 東燕巢新村・社區集運點", 22.8048, 120.4038),
+        makeStop("15. 終點・北區資源回收廠", 22.8032, 120.4072)
+      ]
+    },
+    {
+      id: "KEC-7142",
+      baseId: "KEC-7142",
+      name: "路線 C・台22線旗楠路－大社快線",
+      roadNote: "高楠公路 → 台22線旗楠路 → 興楠路 → 中山路",
+      load: 36,
+      temp: 30.8,
+      progress: 2.1,
+      speedPerSec: 0.085,
       delayMin: 0,
       incidentType: null,
       isFullReturning: false,
@@ -520,96 +598,35 @@
       lastCollectedStopIdx: 2,
       waitingRedLight: false,
       dispatchCount: 0,
-      color: "#0f766e",
-      stops: [
-        makeStop("燕巢區公所清潔隊（中民路）", 22.7932, 120.3622),
-        makeStop("中民路・燕巢農會前", 22.7945, 120.3658),
-        makeStop("中華路・燕巢國小側門", 22.7962, 120.3695),
-        makeStop("深水路・高科大燕巢校區大門", 22.7988, 120.3748),
-        makeStop("深水路一段・學生宿舍區", 22.8012, 120.3792),
-        makeStop("橫山路・橫山社區活動中心", 22.8035, 120.3845),
-        makeStop("義大路・義大醫院聯絡道口", 22.7995, 120.3882),
-        makeStop("角宿路・角宿天后宮廣場", 22.7958, 120.3915),
-        makeStop("鳳旗路・鳳雄國小站", 22.7922, 120.3948),
-        makeStop("滾水路・滾水社區入口", 22.7895, 120.3982),
-        makeStop("安林路・燕巢工業區南站", 22.7868, 120.4015),
-        makeStop("終點・南區資源轉運站", 22.7840, 120.4050)
-      ]
-    },
-    {
-      id: "KEB-3095",
-      baseId: "KEB-3095",
-      name: "路線 B・安招路－北區與阿公店支線",
-      roadNote: "行經：安招路 → 瓊林路 → 工程路（水庫南側）",
-      load: 84,
-      temp: 32.1,
-      progress: 4.55,
-      speedPerSec: 0.075,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 4,
-      waitingRedLight: false,
-      dispatchCount: 0,
-      color: "#2563eb",
-      stops: [
-        makeStop("安招路・北區車輛調度場", 22.8145, 120.3560),
-        makeStop("安招路一段・北口社區", 22.8128, 120.3605),
-        makeStop("瓊林路・瓊林社區公園", 22.8110, 120.3652),
-        makeStop("中興路・燕巢北區市場", 22.8092, 120.3698),
-        makeStop("湖仔內路・湖仔內路口", 22.8105, 120.3745),
-        makeStop("尖山路・尖山社區活動站", 22.8122, 120.3792),
-        makeStop("金山路・金山國小前", 22.8140, 120.3840),
-        makeStop("深水路二段・泥火山路口", 22.8118, 120.3888),
-        makeStop("麒麟尾路・麒麟尾社區", 22.8095, 120.3935),
-        makeStop("工程路・深水北站", 22.8075, 120.3980),
-        makeStop("東燕巢新村・集運點", 22.8055, 120.4025),
-        makeStop("終點・北區資源回收廠", 22.8035, 120.4070)
-      ]
-    },
-    {
-      id: "KEC-7142",
-      baseId: "KEC-7142",
-      name: "路線 C・台22線旗楠路－創新路快線",
-      roadNote: "行經：旗楠路（台22線）→ 創新路 → 大社中山路",
-      load: 36,
-      temp: 30.8,
-      progress: 1.75,
-      speedPerSec: 0.085,
-      delayMin: 0,
-      incidentType: null,
-      isFullReturning: false,
-      returnCountdown: 0,
-      collectingCountdown: 0,
-      lastCollectedStopIdx: 1,
-      waitingRedLight: false,
-      dispatchCount: 0,
       color: "#7c3aed",
+      roadSnapped: false,
+      segmentPaths: [],
       stops: [
-        makeStop("高楠公路・楠梓都會公園站", 22.7745, 120.3490),
-        makeStop("旗楠路一段・清豐路口", 22.7768, 120.3538),
-        makeStop("惠民捷西路口・住宅區", 22.7790, 120.3585),
-        makeStop("土庫一路・土庫清運點", 22.7815, 120.3632),
-        makeStop("創新路・高科大第一校區側", 22.7842, 120.3680),
-        makeStop("旗楠路・燕巢交流道南側", 22.7868, 120.3730),
-        makeStop("鳳旗路・鳳山厝社區", 22.7852, 120.3782),
-        makeStop("興楠路・援中港聯絡道", 22.7828, 120.3835),
-        makeStop("翠屏路・大社觀音山路口", 22.7802, 120.3888),
-        makeStop("中山路・大社商圈中心站", 22.7778, 120.3940),
-        makeStop("三民路・大社果菜市場", 22.7755, 120.3990),
-        makeStop("終點・南區環保處理廠", 22.7732, 120.4040)
+        makeStop("1. 高楠公路・楠梓都會公園站", 22.7745, 120.3490),
+        makeStop("2. 旗楠路一段・清豐路口", 22.7765, 120.3532),
+        makeStop("3. 旗楠路・惠民捷西路口", 22.7785, 120.3575),
+        makeStop("4. 旗楠路中段・土庫南口", 22.7808, 120.3618),
+        makeStop("5. 旗楠路・創新路交叉口", 22.7832, 120.3665),
+        makeStop("6. 旗楠路東段・高速聯絡道口", 22.7855, 120.3712),
+        makeStop("7. 旗楠路・燕巢交流道南側", 22.7872, 120.3755),
+        makeStop("8. 鳳旗路・鳳山厝社區", 22.7855, 120.3795),
+        makeStop("9. 興楠路・援中港聯絡道", 22.7832, 120.3838),
+        makeStop("10. 翠屏路北口・觀音山聯絡站", 22.7810, 120.3878),
+        makeStop("11. 中山路西段・大社住宅區", 22.7790, 120.3915),
+        makeStop("12. 中山路・大社商圈中心站", 22.7775, 120.3952),
+        makeStop("13. 三民路・大社果菜市場", 22.7760, 120.3988),
+        makeStop("14. 金龍路・大社工業聯絡站", 22.7745, 120.4018),
+        makeStop("15. 終點・南區環保處理廠", 22.7730, 120.4045)
       ]
     },
     {
       id: "KED-5508",
       baseId: "KED-5508",
-      name: "路線 D・阿公店水庫－東區山線清運車",
-      roadNote: "行經：菜寮路 → 工程路 → 臥牛巷 → 埤底巷",
+      name: "路線 D・阿公店水庫－東區山線",
+      roadNote: "田寮聯絡道 → 水庫路 → 工程路 → 菜寮路",
       load: 51,
       temp: 31.2,
-      progress: 6.7,
+      progress: 6.4,
       speedPerSec: 0.07,
       delayMin: 0,
       incidentType: null,
@@ -620,52 +637,176 @@
       waitingRedLight: false,
       dispatchCount: 0,
       color: "#059669",
+      roadSnapped: false,
+      segmentPaths: [],
       stops: [
-        makeStop("田寮聯絡道・東區山線起點", 22.8195, 120.3885),
-        makeStop("鹿埔路・鹿埔社區站", 22.8165, 120.3912),
-        makeStop("尖山嶺・山線清運點", 22.8135, 120.3940),
-        makeStop("水庫路・阿公店水庫北入口", 22.8105, 120.3968),
-        makeStop("工程路・阿公店水庫管理站", 22.8075, 120.3995),
-        makeStop("工程路南段・住宅聚落", 22.8042, 120.4015),
-        makeStop("菜寮路・菜寮社區活動中心", 22.8008, 120.4032),
-        makeStop("小滾水路・小滾水站", 22.7975, 120.4048),
-        makeStop("埤底巷・埤底清運點", 22.7942, 120.4062),
-        makeStop("臥牛巷・臥牛巷口", 22.7910, 120.4075),
-        makeStop("東區農產集貨場", 22.7880, 120.4088),
-        makeStop("終點・東區轉運站", 22.7850, 120.4100)
+        makeStop("1. 田寮聯絡道・東區山線起點", 22.8195, 120.3885),
+        makeStop("2. 鹿埔路北口・山線聚落", 22.8172, 120.3905),
+        makeStop("3. 鹿埔路・鹿埔社區活動站", 22.8150, 120.3925),
+        makeStop("4. 尖山嶺・山線清運點", 22.8128, 120.3945),
+        makeStop("5. 水庫路・阿公店水庫北入口", 22.8105, 120.3968),
+        makeStop("6. 工程路・阿公店水庫管理站", 22.8078, 120.3992),
+        makeStop("7. 工程路中段・水庫南堤口", 22.8052, 120.4010),
+        makeStop("8. 工程路南段・住宅聚落", 22.8028, 120.4024),
+        makeStop("9. 菜寮路・菜寮社區活動中心", 22.8002, 120.4036),
+        makeStop("10. 小滾水路・小滾水站", 22.7975, 120.4048),
+        makeStop("11. 埤底巷・埤底清運點", 22.7948, 120.4060),
+        makeStop("12. 臥牛巷・臥牛巷口", 22.7920, 120.4072),
+        makeStop("13. 東區農產集貨場", 22.7895, 120.4084),
+        makeStop("14. 東區環保轉運前站", 22.7872, 120.4094),
+        makeStop("15. 終點・東區轉運站", 22.7850, 120.4102)
       ]
     },
     {
       id: "KEE-9214",
       baseId: "KEE-9214",
       name: "路線 E・橫山路－樹德科大西區線",
-      roadNote: "行經：仕隆路 → 成功南路 → 橫山路（樹德科大）",
+      roadNote: "仕隆路 → 成功南路 → 橫山路 → 瓊林西路",
       load: 42,
       temp: 30.5,
-      progress: 3.65,
+      progress: 4.1,
       speedPerSec: 0.078,
       delayMin: 0,
       incidentType: null,
       isFullReturning: false,
       returnCountdown: 0,
       collectingCountdown: 0,
-      lastCollectedStopIdx: 3,
+      lastCollectedStopIdx: 4,
       waitingRedLight: false,
       dispatchCount: 0,
       color: "#d97706",
+      roadSnapped: false,
+      segmentPaths: [],
       stops: [
-        makeStop("橋頭聯絡道・西區起點站", 22.8100, 120.3475),
-        makeStop("仕隆路・仕隆社區前", 22.8068, 120.3492),
-        makeStop("成功南路・橋頭接駁口", 22.8035, 120.3510),
-        makeStop("滾水西路・滾水西站", 22.8002, 120.3528),
-        makeStop("橫山路・樹德科技大學正門", 22.7968, 120.3548),
-        makeStop("橫山路東段・學生商圈", 22.7938, 120.3568),
-        makeStop("鳳山厝西路・西站", 22.7908, 120.3588),
-        makeStop("典寶溪橋頭・河岸清運點", 22.7880, 120.3608),
-        makeStop("筆秀路・筆秀社區站", 22.7855, 120.3628),
-        makeStop("瓊林西路・住宅區", 22.7832, 120.3648),
-        makeStop("西區環保綠能公園", 22.7810, 120.3668),
-        makeStop("終點・西區轉運中心", 22.7788, 120.3688)
+        makeStop("1. 橋頭聯絡道・西區起點站", 22.8100, 120.3475),
+        makeStop("2. 仕隆路北段・住宅社區", 22.8075, 120.3488),
+        makeStop("3. 仕隆路・仕隆社區活動站", 22.8050, 120.3502),
+        makeStop("4. 成功南路・橋頭接駁口", 22.8025, 120.3516),
+        makeStop("5. 滾水西路・滾水西站", 22.7998, 120.3532),
+        makeStop("6. 橫山路・樹德科技大學正門", 22.7970, 120.3548),
+        makeStop("7. 橫山路東段・學生商圈站", 22.7945, 120.3566),
+        makeStop("8. 橫山南路・社區集運點", 22.7922, 120.3584),
+        makeStop("9. 鳳山厝西路・西站", 22.7900, 120.3602),
+        makeStop("10. 典寶溪橋頭・河岸清運點", 22.7878, 120.3618),
+        makeStop("11. 筆秀路・筆秀社區站", 22.7856, 120.3634),
+        makeStop("12. 瓊林西路北口・住宅區", 22.7836, 120.3650),
+        makeStop("13. 瓊林西路南段・里民中心", 22.7818, 120.3666),
+        makeStop("14. 西區環保綠能公園", 22.7802, 120.3680),
+        makeStop("15. 終點・西區轉運中心", 22.7785, 120.3692)
+      ]
+    },
+    {
+      id: "KEF-4109",
+      baseId: "KEF-4109",
+      name: "路線 F・楠梓土庫－第一校區環線",
+      roadNote: "土庫一路 → 創新路 → 卓越路 → 清豐二路",
+      load: 29,
+      temp: 30.2,
+      progress: 1.8,
+      speedPerSec: 0.082,
+      delayMin: 0,
+      incidentType: null,
+      isFullReturning: false,
+      returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 1,
+      waitingRedLight: false,
+      dispatchCount: 0,
+      color: "#db2777",
+      roadSnapped: false,
+      segmentPaths: [],
+      stops: [
+        makeStop("1. 土庫清運調度站", 22.7825, 120.3575),
+        makeStop("2. 土庫一路・住宅大樓群", 22.7818, 120.3602),
+        makeStop("3. 清豐二路・清豐公園前", 22.7805, 120.3628),
+        makeStop("4. 創新路西口・商圈集運點", 22.7822, 120.3655),
+        makeStop("5. 創新路・高科大第一校區正門", 22.7842, 120.3680),
+        makeStop("6. 卓越路・第一校區東側門", 22.7858, 120.3705),
+        makeStop("7. 卓越路北段・科技園區站", 22.7875, 120.3728),
+        makeStop("8. 旗楠路・燕巢南聯絡站", 22.7888, 120.3748),
+        makeStop("9. 安林一街・工業區西入口", 22.7898, 120.3775),
+        makeStop("10. 安林路・廠商聯合清運站", 22.7885, 120.3805),
+        makeStop("11. 鳳旗路西段・社區活動站", 22.7865, 120.3825),
+        makeStop("12. 興楠路北口・聯絡道站", 22.7842, 120.3838),
+        makeStop("13. 楠梓東路・住宅集運點", 22.7818, 120.3812),
+        makeStop("14. 旗楠路南側・轉運前站", 22.7795, 120.3775),
+        makeStop("15. 終點・楠梓環保資源站", 22.7775, 120.3738)
+      ]
+    },
+    {
+      id: "KEG-6380",
+      baseId: "KEG-6380",
+      name: "路線 G・大社觀音山－翠屏路清運線",
+      roadNote: "翠屏路 → 觀音山風景區口 → 中山路 → 金龍路",
+      load: 58,
+      temp: 31.6,
+      progress: 4.6,
+      speedPerSec: 0.074,
+      delayMin: 0,
+      incidentType: null,
+      isFullReturning: false,
+      returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 4,
+      waitingRedLight: false,
+      dispatchCount: 0,
+      color: "#0891b2",
+      roadSnapped: false,
+      segmentPaths: [],
+      stops: [
+        makeStop("1. 大社清潔隊出發站", 22.7740, 120.3885),
+        makeStop("2. 金龍路・大社住宅區", 22.7755, 120.3912),
+        makeStop("3. 三民路・大社公有市場", 22.7768, 120.3945),
+        makeStop("4. 中山路・大社郵局前", 22.7782, 120.3972),
+        makeStop("5. 翠屏路・大社國小側門", 22.7798, 120.3995),
+        makeStop("6. 翠屏路中段・觀音山腳站", 22.7815, 120.4022),
+        makeStop("7. 觀音山風景區・停車場口", 22.7832, 120.4050),
+        makeStop("8. 學府路・義守大學聯絡口", 22.7855, 120.4068),
+        makeStop("9. 義大二路・社區集運點", 22.7880, 120.4045),
+        makeStop("10. 義大路南段・飯店園區側", 22.7912, 120.4015),
+        makeStop("11. 義大路中段・聯絡道站", 22.7945, 120.3982),
+        makeStop("12. 角宿南路・聚落清運點", 22.7932, 120.3948),
+        makeStop("13. 鳳旗路中段・鳳雄社區", 22.7905, 120.3915),
+        makeStop("14. 興楠路東段・大社北口", 22.7872, 120.3885),
+        makeStop("15. 終點・大社資源回收中心", 22.7838, 120.3865)
+      ]
+    },
+    {
+      id: "KEH-1947",
+      baseId: "KEH-1947",
+      name: "路線 H・燕巢中民－安招環狀接駁線",
+      roadNote: "中民路 → 中興路 → 安招路 → 瓊林路 → 中華路",
+      load: 73,
+      temp: 31.9,
+      progress: 7.2,
+      speedPerSec: 0.08,
+      delayMin: 0,
+      incidentType: null,
+      isFullReturning: false,
+      returnCountdown: 0,
+      collectingCountdown: 0,
+      lastCollectedStopIdx: 7,
+      waitingRedLight: false,
+      dispatchCount: 0,
+      color: "#4f46e5",
+      roadSnapped: false,
+      segmentPaths: [],
+      stops: [
+        makeStop("1. 燕巢轉運調度中心", 22.7925, 120.3605),
+        makeStop("2. 中民路・衛生所前站", 22.7942, 120.3635),
+        makeStop("3. 中民路東段・圖書館前", 22.7958, 120.3662),
+        makeStop("4. 中興南路・農會集貨站", 22.7982, 120.3672),
+        makeStop("5. 中興路・燕巢國中正門", 22.8012, 120.3680),
+        makeStop("6. 中興北路・傳統市場口", 22.8045, 120.3688),
+        makeStop("7. 中興路・北區民生商圈", 22.8078, 120.3695),
+        makeStop("8. 安招路・安招社區活動站", 22.8112, 120.3655),
+        makeStop("9. 安招路西段・西燕巢聚落", 22.8132, 120.3612),
+        makeStop("10. 瓊林北路・瓊林里民中心", 22.8098, 120.3585),
+        makeStop("11. 瓊林路・瓊林國小前", 22.8065, 120.3572),
+        makeStop("12. 瓊林南路・社區集運點", 22.8032, 120.3565),
+        makeStop("13. 滾水路西口・聯絡站", 22.7998, 120.3578),
+        makeStop("14. 中華路西段・西燕巢入口", 22.7968, 120.3595),
+        makeStop("15. 終點・燕巢清潔隊總站", 22.7932, 120.3618)
       ]
     }
   ];
@@ -674,8 +815,9 @@
     { name: "燕巢區深水路一段（高科大燕巢校區）", lat: 22.7988, lng: 120.3748 },
     { name: "燕巢區中興路（燕巢北區市場）", lat: 22.8092, lng: 120.3698 },
     { name: "楠梓區創新路（第一校區周邊）", lat: 22.7842, lng: 120.3680 },
-    { name: "燕巢區工程路（阿公店水庫管理站）", lat: 22.8075, lng: 120.3995 },
-    { name: "燕巢區橫山路（樹德科技大學前）", lat: 22.7968, lng: 120.3548 }
+    { name: "燕巢區工程路（阿公店水庫管理站）", lat: 22.8078, lng: 120.3992 },
+    { name: "燕巢區橫山路（樹德科技大學前）", lat: 22.7970, lng: 120.3548 },
+    { name: "大社區翠屏路（觀音山風景區口）", lat: 22.7815, lng: 120.4022 }
   ];
 
   let state = {
@@ -688,7 +830,8 @@
     speedMultiplier: 1,
     showAllVehicles: false,
     systemAlert: "",
-    tickCount: 0
+    tickCount: 0,
+    roadSnapCount: 0
   };
 
   function calcGeoMeters(lat1, lng1, lat2, lng2) {
@@ -699,23 +842,86 @@
     return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   }
 
+  // 沿著真實道路多段線內插精準位置（取代直線切過建築物）
+  function interpolateAlongSegment(bus, segIdx, frac) {
+    const sA = bus.stops[segIdx];
+    const sB = bus.stops[segIdx + 1];
+    const poly = (bus.segmentPaths && bus.segmentPaths[segIdx]) ? bus.segmentPaths[segIdx] : [[sA.lat, sA.lng], [sB.lat, sB.lng]];
+    if (poly.length <= 2 || frac <= 0) {
+      return {
+        lat: sA.lat + (sB.lat - sA.lat) * frac,
+        lng: sA.lng + (sB.lng - sA.lng) * frac
+      };
+    }
+    const exactIdx = frac * (poly.length - 1);
+    const i0 = Math.min(Math.floor(exactIdx), poly.length - 2);
+    const subFrac = exactIdx - i0;
+    const p0 = poly[i0];
+    const p1 = poly[i0 + 1];
+    return {
+      lat: p0[0] + (p1[0] - p0[0]) * subFrac,
+      lng: p0[1] + (p1[1] - p0[1]) * subFrac
+    };
+  }
+
+  // 透過 OSRM 取得真實街道轉折座標，讓路線與車輛完全沿著地圖馬路走
+  async function snapRouteToRealRoads(bus) {
+    try {
+      const coordsParam = bus.stops.map(s => `${s.lng},${s.lat}`).join(";");
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordsParam}?overview=false&steps=true`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.routes || !data.routes[0] || !data.routes[0].legs) return;
+
+      const legs = data.routes[0].legs;
+      const segPaths = [];
+      for (let i = 0; i < legs.length; i++) {
+        const pts = [];
+        legs[i].steps.forEach(step => {
+          if (step.intersections) {
+            step.intersections.forEach(inter => {
+              pts.push([inter.location[1], inter.location[0]]);
+            });
+          }
+        });
+        if (pts.length >= 2) {
+          segPaths.push(pts);
+        } else {
+          segPaths.push([[bus.stops[i].lat, bus.stops[i].lng], [bus.stops[i + 1].lat, bus.stops[i + 1].lng]]);
+        }
+      }
+      bus.segmentPaths = segPaths;
+      bus.roadSnapped = true;
+      state.roadSnapCount += 1;
+    } catch (e) {
+      // 網路受限時自動維持站點連線備援
+    }
+  }
+
+  async function snapAllRoutesToRoads() {
+    for (const bus of ROUTES) {
+      await snapRouteToRealRoads(bus);
+    }
+    renderAll();
+  }
+
   function getBusTelemetry(bus) {
     const maxIdx = bus.stops.length - 1;
     const clamped = Math.min(bus.progress, maxIdx);
     const segIdx = Math.min(Math.floor(clamped), maxIdx - 1);
     const frac = clamped - segIdx;
 
-    const sA = bus.stops[segIdx];
-    const sB = bus.stops[segIdx + 1];
-    const curLat = sA.lat + (sB.lat - sA.lat) * frac;
-    const curLng = sA.lng + (sB.lng - sA.lng) * frac;
+    const pos = interpolateAlongSegment(bus, segIdx, frac);
+    const curLat = pos.lat;
+    const curLng = pos.lng;
 
     const isFinished = clamped >= maxIdx - 0.01;
     const nextStopIdx = bus.collectingCountdown > 0 ? Math.round(clamped) : (isFinished ? maxIdx : segIdx + 1);
     const nextStop = bus.stops[nextStopIdx];
     const remainSegsToNext = bus.collectingCountdown > 0 ? 0 : Math.max(0, nextStopIdx - clamped);
     const rainDelay = state.weatherIdx === 2 ? 1 : 0;
-    const remainSecToNext = Math.round(remainSegsToNext * 150 + (bus.delayMin + rainDelay) * 60);
+    const remainSecToNext = Math.round(remainSegsToNext * 140 + (bus.delayMin + rainDelay) * 60);
     const remainMetersToNext = bus.collectingCountdown > 0 ? 0 : calcGeoMeters(curLat, curLng, nextStop.lat, nextStop.lng);
     const isArrivingSoon = !isFinished && !bus.isFullReturning && !bus.incidentType && bus.collectingCountdown === 0 && (remainSecToNext <= 60 || remainMetersToNext <= 150);
 
@@ -737,7 +943,7 @@
     const passedAgoMin = hasPassedNearest ? Math.max(1, Math.round((clamped - nearestIdx) * 2.5)) : 0;
 
     return {
-      curLat, curLng,
+      curLat, curLng, segIdx, frac,
       isFinished, nextStopIdx, nextStop,
       remainSecToNext, remainMetersToNext, isArrivingSoon,
       etaStr, nearestIdx, nearestStop, walkMeters,
@@ -753,7 +959,6 @@
     return `${m} 分 ${s.toString().padStart(2, "0")} 秒`;
   }
 
-  // 自動向 Open-Meteo 抓取高雄燕巢真實即時天氣
   async function fetchRealWeather() {
     try {
       const lat = state.userPos.lat || 22.7988;
@@ -780,15 +985,12 @@
         wind: `風速 ${Math.round(cur.wind_speed_10m)} km/h`,
         advice: isRain
           ? "已連線氣象站偵測到降雨，自動微調行車節奏與到站時間"
-          : (isHot ? "已連線氣象站偵測到高溫，加強車斗蓄熱監測" : "已即時同步高雄燕巢真實室外氣溫與濕度")
-        ,
+          : (isHot ? "已連線氣象站偵測到高溫，加強車斗蓄熱監測" : "已即時同步高雄燕巢真實室外氣溫與濕度"),
         isLive: true
       };
       state.weatherIdx = 0;
       renderAll();
-    } catch (e) {
-      // 離線或網路受限時自動使用備援天氣資料
-    }
+    } catch (e) {}
   }
 
   function dispatchReplacementVehicle(problemBus, reason) {
@@ -813,6 +1015,7 @@
       waitingRedLight: false,
       dispatchCount: 0,
       stops: problemBus.stops.map(s => ({ ...s })),
+      segmentPaths: problemBus.segmentPaths ? problemBus.segmentPaths.map(p => [...p]) : [],
       color: "#0284c7"
     };
 
@@ -872,8 +1075,10 @@
     renderWeatherBanner();
     const w = WEATHER_PRESETS[state.weatherIdx];
     document.getElementById("userLocName").textContent = state.userPos.name;
+    const totalStops = ROUTES.reduce((acc, r) => acc + r.stops.length, 0);
+    const snapText = state.roadSnapCount > 0 ? `已貼合真實道路網（${state.roadSnapCount}/${ROUTES.length} 條）` : "載入真實道路轉彎軌跡中...";
     document.getElementById("fleetSummary").textContent =
-      `線上 ${ROUTES.length} 輛清運車（行駛中載量固定・僅到站停等收運完成才增加）：`;
+      `線上 ${ROUTES.length} 輛清運車・共 ${totalStops} 站（${snapText}）：`;
 
     const container = document.getElementById("busListContainer");
     const bannerHtml = state.systemAlert
@@ -884,7 +1089,7 @@
       const t = getBusTelemetry(bus);
       const isSelected = bus.id === state.selectedBusId;
 
-      let statusBadge = `<span class="badge badge-ok">● 道路行駛中（載量鎖定）</span>`;
+      let statusBadge = `<span class="badge badge-ok">● 沿道路行駛中（${bus.stops.length} 站）</span>`;
       if (bus.incidentType === "fire") statusBadge = `<span class="badge badge-danger">🔥 失火 65°C・已加派接管</span>`;
       else if (bus.incidentType === "crash") statusBadge = `<span class="badge badge-danger">💥 發生車禍・已加派接管</span>`;
       else if (bus.isFullReturning) statusBadge = `<span class="badge badge-danger">🛑 100% 滿載返場中</span>`;
@@ -944,7 +1149,7 @@
     const fillColor = (bus.load >= 100 || bus.incidentType) ? "#dc2626" : (bus.load >= 85 ? "#f59e0b" : "#0f766e");
     const totalDelay = bus.delayMin + (state.weatherIdx === 2 ? 1 : 0);
 
-    let alertTag = `<span class="badge badge-ok">✅ 行駛中載量固定・溫控正常</span>`;
+    let alertTag = `<span class="badge badge-ok">✅ 沿真實馬路行駛・載量鎖定</span>`;
     if (bus.incidentType === "fire") alertTag = `<span class="badge badge-danger">🔥 失火警報 65°C・已派車接管</span>`;
     else if (bus.incidentType === "crash") alertTag = `<span class="badge badge-danger">💥 交通事故停駛・已派車接管</span>`;
     else if (bus.load >= 100) alertTag = `<span class="badge badge-danger">🛑 載量 100% 滿載・已派車接管</span>`;
@@ -1014,12 +1219,11 @@
           </div>
         </div>
 
-        <button class="btn-primary" onclick="goToMapForSelected()">🗺️ 前往真實地圖（查看街道與紅綠燈號誌）</button>
+        <button class="btn-primary" onclick="goToMapForSelected()">🗺️ 前往真實地圖（查看街道轉彎軌跡與紅綠燈）</button>
       </div>
     `;
   }
 
-  // Leaflet 真實地圖實例與圖層群組
   let leafletMap = null;
   let routeLayerGroup = null;
   let vehicleLayerGroup = null;
@@ -1046,7 +1250,7 @@
     trafficLayerGroup.clearLayers();
     vehicleLayerGroup.clearLayers();
 
-    // 1. 繪製路口紅綠燈號誌
+    // 1. 繪製 10 處主要路口紅綠燈號誌
     TRAFFIC_LIGHTS.forEach(tl => {
       const isRed = isTrafficLightRed(tl, state.tickCount);
       const icon = L.divIcon({
@@ -1069,7 +1273,7 @@
     });
     L.marker([state.userPos.lat, state.userPos.lng], { icon: userIcon }).addTo(vehicleLayerGroup);
 
-    // 3. 繪製垃圾車路線、站點與車輛位置
+    // 3. 繪製沿真實道路轉彎的垃圾車路線與站點
     const busesToRender = state.showAllVehicles
       ? ROUTES
       : ROUTES.filter(b => b.id === state.selectedBusId);
@@ -1079,12 +1283,35 @@
       const isMain = bus.id === state.selectedBusId;
       const splitIdx = Math.floor(Math.min(bus.progress, bus.stops.length - 1));
 
-      const passedCoords = bus.stops.slice(0, splitIdx + 1).map(s => [s.lat, s.lng]);
-      passedCoords.push([t.curLat, t.curLng]);
-      L.polyline(passedCoords, { color: "#94a3b8", weight: isMain ? 5 : 3, opacity: 0.85 }).addTo(routeLayerGroup);
+      // 已走過的真實道路路段
+      let passedCoords = [];
+      for (let i = 0; i < splitIdx; i++) {
+        const seg = (bus.segmentPaths && bus.segmentPaths[i]) ? bus.segmentPaths[i] : [[bus.stops[i].lat, bus.stops[i].lng], [bus.stops[i + 1].lat, bus.stops[i + 1].lng]];
+        passedCoords.push(...seg);
+      }
+      if (splitIdx < bus.stops.length - 1) {
+        const curSeg = (bus.segmentPaths && bus.segmentPaths[splitIdx]) ? bus.segmentPaths[splitIdx] : [[bus.stops[splitIdx].lat, bus.stops[splitIdx].lng], [bus.stops[splitIdx + 1].lat, bus.stops[splitIdx + 1].lng]];
+        const cutIdx = Math.floor(t.frac * (curSeg.length - 1));
+        passedCoords.push(...curSeg.slice(0, cutIdx + 1), [t.curLat, t.curLng]);
+      }
+      if (passedCoords.length >= 2) {
+        L.polyline(passedCoords, { color: "#94a3b8", weight: isMain ? 5 : 3, opacity: 0.85 }).addTo(routeLayerGroup);
+      }
 
-      const remainCoords = [[t.curLat, t.curLng], ...bus.stops.slice(splitIdx + 1).map(s => [s.lat, s.lng])];
-      L.polyline(remainCoords, { color: bus.color, weight: isMain ? 5 : 3, dashArray: "8, 6", opacity: 0.95 }).addTo(routeLayerGroup);
+      // 尚未行駛的真實道路路段
+      let remainCoords = [[t.curLat, t.curLng]];
+      if (splitIdx < bus.stops.length - 1) {
+        const curSeg = (bus.segmentPaths && bus.segmentPaths[splitIdx]) ? bus.segmentPaths[splitIdx] : [[bus.stops[splitIdx].lat, bus.stops[splitIdx].lng], [bus.stops[splitIdx + 1].lat, bus.stops[splitIdx + 1].lng]];
+        const cutIdx = Math.floor(t.frac * (curSeg.length - 1));
+        remainCoords.push(...curSeg.slice(cutIdx + 1));
+      }
+      for (let i = splitIdx + 1; i < bus.stops.length - 1; i++) {
+        const seg = (bus.segmentPaths && bus.segmentPaths[i]) ? bus.segmentPaths[i] : [[bus.stops[i].lat, bus.stops[i].lng], [bus.stops[i + 1].lat, bus.stops[i + 1].lng]];
+        remainCoords.push(...seg);
+      }
+      if (remainCoords.length >= 2) {
+        L.polyline(remainCoords, { color: bus.color, weight: isMain ? 5 : 3, dashArray: "8, 6", opacity: 0.95 }).addTo(routeLayerGroup);
+      }
 
       if (!state.showAllVehicles || isMain) {
         bus.stops.forEach((st, idx) => {
@@ -1092,7 +1319,7 @@
           const isPassed = idx <= splitIdx;
           const fillColor = isNext ? (bus.collectingCountdown > 0 ? "#16a34a" : "#ea580c") : (isPassed ? "#94a3b8" : "#ffffff");
           L.circleMarker([st.lat, st.lng], {
-            radius: isNext ? 7 : 5,
+            radius: isNext ? 7 : 4.5,
             fillColor: fillColor,
             color: isNext ? "#ffffff" : bus.color,
             weight: 2,
@@ -1125,8 +1352,8 @@
 
     const selectedBus = ROUTES.find(b => b.id === state.selectedBusId) || ROUTES[0];
     document.getElementById("mapModeLabel").textContent = state.showAllVehicles
-      ? `全區 ${ROUTES.length} 輛垃圾車真實街道總覽`
-      : `${selectedBus.id} 真實街道地圖與紅綠燈號誌`;
+      ? `全區 ${ROUTES.length} 輛清運車（共 ${ROUTES.reduce((a, b) => a + b.stops.length, 0)} 站真實道路總覽）`
+      : `${selectedBus.id} 沿真實道路軌跡（${selectedBus.stops.length} 站）`;
     document.getElementById("btnAllVehicles").style.background = state.showAllVehicles ? "#ccfbf1" : "rgba(255,255,255,0.95)";
 
     if (leafletMap) {
@@ -1157,7 +1384,7 @@
 
         <div class="next-stop-box ${selectedBus.collectingCountdown > 0 ? "collecting" : (t.isArrivingSoon ? "soon" : "")}">
           <div class="next-stop-title">
-            ${selectedBus.collectingCountdown > 0 ? `停靠收垃圾：${t.nextStop.name}` : `下一站：${t.nextStop.name}`}
+            ${selectedBus.collectingCountdown > 0 ? `停靠收垃圾：${t.nextStop.name}` : `下一站（第 ${t.nextStopIdx + 1}/${selectedBus.stops.length} 站）：${t.nextStop.name}`}
           </div>
           <div class="next-stop-meta">
             <span>預計時間：<b>${t.etaStr}</b></span>
@@ -1210,7 +1437,7 @@
     renderMapPage();
     if (leafletMap) {
       if (state.showAllVehicles) {
-        leafletMap.setView([22.798, 120.378], 13);
+        leafletMap.setView([22.796, 120.378], 13);
       } else {
         centerSelectedBus();
       }
@@ -1333,7 +1560,7 @@
           if (bus.collectingCountdown === 0) {
             const addedLoad = Math.floor(Math.random() * 5) + 2;
             bus.load = Math.min(100, bus.load + addedLoad);
-            if (bus.load >= 100 && ROUTES.length < 15) {
+            if (bus.load >= 100 && ROUTES.length < 20) {
               dispatchReplacementVehicle(bus, "full");
               break;
             }
@@ -1375,6 +1602,7 @@
   }, 1000);
 
   fetchRealWeather();
+  snapAllRoutesToRoads();
   renderAll();
 </script>
 </body>
